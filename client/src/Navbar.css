@@ -1,0 +1,64 @@
+.navbar {
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  background-color: #00796b;
+  color: white;
+  position: relative;
+  z-index: 10;
+}
+
+.navbar-user {
+  cursor: pointer;
+}
+
+.navbar-user img {
+  width: 40px;             /* square size */
+  height: 40px;            /* square size */
+  border-radius: 50%;      /* makes it a circle */
+  border: 2.5px solid black; /* sharp black border */
+  --padding: 2px;            /* inner spacing */
+  box-sizing: border-box;  /* includes border & padding in size */
+  background: white;       /* background inside the border */
+  display: block;          /* fixes inline img spacing */
+}
+
+
+.logout-menu {
+  position: absolute;
+  top: 60px;
+  right: 1rem;
+  background: white;
+  color: black;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.logout-menu .user-email {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+  word-break: break-all;
+}
+
+.logout-menu button {
+  background: #00796b;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.logout-menu button:hover {
+  background: #004d40;
+}
