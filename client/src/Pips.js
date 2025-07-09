@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { CSVLink } from 'react-csv';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import './Pages.css';
 
 function PIPs() {
@@ -7,14 +11,23 @@ function PIPs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState('full_name');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [searchTerm, setSearchTerm] = useState('');
   const itemsPerPage = 5;
 
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const query = searchParams.get('query')?.toLowerCase() || '';
+  const queryParam = new URLSearchParams(location.search).get('query');
+  const query = queryParam?.toLowerCase() || '';
+
+  // Sync searchTerm with query parameter on mount or query change
+  useEffect(() => {
+    setSearchTerm(query); // Set searchTerm to match query from URL
+  }, [query]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/pipsdata/pipsfetch')
+    setLoading(true);
+    fetch(`http://localhost:5000/api/pipsdata/pipsfetch?query=${query}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch PIPs');
         return res.json();
@@ -27,22 +40,65 @@ function PIPs() {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [query]);
 
-  const filteredPips = query
-    ? pips.filter(pip =>
-        pip.full_name.toLowerCase().includes(query) ||
-        (pip.national_id && pip.national_id.includes(query))
-      )
+  const handleSort = (col) => {
+    const order = sortColumn === col && sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortColumn(col);
+    setSortOrder(order);
+  };
+
+  const filtered = searchTerm
+    ? pips.filter(pip => {
+        const term = searchTerm.toLowerCase();
+        return (
+          pip.full_name.toLowerCase().includes(term) ||
+          (pip.national_id && pip.national_id.includes(term)) ||
+          pip.associates.some(assoc =>
+            assoc.associate_name.toLowerCase().includes(term) ||
+            (assoc.national_id && assoc.national_id.includes(term))
+          )
+        );
+      })
     : pips;
 
-  const totalPages = Math.ceil(filteredPips.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentPips = filteredPips.slice(startIndex, startIndex + itemsPerPage);
+  const sorted = filtered.sort((a, b) => {
+    const valA = a[sortColumn] || '';
+    const valB = b[sortColumn] || '';
+    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
 
-  const handlePageChange = (page) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  const currentPips = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const exportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(pips.map(p => ({
+      'Full Name': p.full_name,
+      'National ID': p.national_id,
+      'Type': p.pip_type,
+      'Reason': p.reason,
+      'Is Foreign': p.is_foreign ? 'Yes' : 'No'
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PIPs');
+    XLSX.writeFile(wb, 'pips.xlsx');
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Is Foreign']],
+      body: pips.map(p => [
+        p.full_name,
+        p.national_id || 'N/A',
+        p.pip_type,
+        p.reason,
+        p.is_foreign ? 'Yes' : 'No',
+      ]),
+    });
+    doc.save('pips.pdf');
   };
 
   if (loading) return <div className="page-container">Loading PIPs...</div>;
@@ -50,30 +106,35 @@ function PIPs() {
 
   return (
     <div className="page-container">
-
-      {query && (
-        <p>
-          Showing results for <strong>"{query}"</strong> ({filteredPips.length} match{filteredPips.length !== 1 ? 'es' : ''})
-        </p>
-      )}
+      <div className="table-controls">
+        <input
+          type="text"
+          placeholder="Search by name or ID..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <CSVLink data={pips} filename="pips.csv" className="export-button">Export CSV</CSVLink>
+        <button className="export-button" onClick={exportExcel}>Export Excel</button>
+        <button className="export-button" onClick={exportPDF}>Export PDF</button>
+      </div>
 
       <div className="table-container">
         <table className="pips-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>Full Name</th>
-              <th>National ID</th>
-              <th>Type</th>
-              <th>Reason</th>
-              <th>Is Foreign?</th>
+              <th onClick={() => handleSort('full_name')}>Full Name {sortColumn === 'full_name' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
+              <th onClick={() => handleSort('national_id')}>National ID {sortColumn === 'national_id' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
+              <th onClick={() => handleSort('pip_type')}>Type {sortColumn === 'pip_type' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
+              <th onClick={() => handleSort('reason')}>Reason {sortColumn === 'reason' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
+              <th onClick={() => handleSort('is_foreign')}>Is Foreign? {sortColumn === 'is_foreign' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
             </tr>
           </thead>
           <tbody>
             {currentPips.map((pip, index) => (
               <React.Fragment key={pip.id}>
                 <tr className="pip-row">
-                  <td>{startIndex + index + 1}</td>
+                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                   <td>{pip.full_name}</td>
                   <td>{pip.national_id || 'N/A'}</td>
                   <td>{pip.pip_type}</td>
@@ -104,17 +165,17 @@ function PIPs() {
       </div>
 
       <div className="pagination">
-        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>← Prev</button>
+        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>← Prev</button>
         {[...Array(totalPages)].map((_, idx) => (
           <button
             key={idx + 1}
-            onClick={() => handlePageChange(idx + 1)}
+            onClick={() => setCurrentPage(idx + 1)}
             className={currentPage === idx + 1 ? 'active' : ''}
           >
             {idx + 1}
           </button>
         ))}
-        <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next →</button>
+        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next →</button>
       </div>
     </div>
   );
