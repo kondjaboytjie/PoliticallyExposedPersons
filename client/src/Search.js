@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Search.css';
 
 function Search() {
   const [query, setQuery] = useState('');
+  const navigate = useNavigate();
 
   const handleSearch = (e) => {
     e.preventDefault();
-    alert(`Searching for: ${query}`);
-    // You can replace this with actual search logic
+    if (!query.trim()) return;
+    navigate(`/pips?query=${encodeURIComponent(query.trim())}`);
   };
 
   return (
@@ -16,7 +18,7 @@ function Search() {
         <h2>PIP Search</h2>
         <input
           type="text"
-          placeholder="Enter PIP Name..."
+          placeholder="Enter PIP Name or National ID..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

@@ -1,32 +1,107 @@
-/* Page.css */
-
+/* Beautiful Page Container */
 .page-container {
-  min-height: 100vh;
-  background: #f7f9fa;
-  display: flex;
-  justify-content: center; /* centers horizontally */
-  align-items: flex-start; /* start at top; change to 'center' for full vertical centering */
-  padding: 2rem 1rem;
-  box-sizing: border-box;
-}
-
-.page-content {
-  width: 100%;
-  max-width: 800px;
-  background: white;
-  padding: 2rem;
+  max-width: 1200px;
+  margin: auto;
+  background-color: #f0fdfc;
   border-radius: 1rem;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 24px rgba(0, 121, 107, 0.1);
+  margin-top: 2rem;
 }
 
-.page-content h2 {
-  margin-bottom: 1rem;
-  color: #00796b;
+/* Title Styling */
+.page-container h2 {
   text-align: center;
+  color: #004d40;
+  margin-bottom: 1.5rem;
 }
 
-.page-content p {
-  color: #555;
-  line-height: 1.6;
-  text-align: center;
+/* Responsive Table Container */
+.table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
+/* Table Base */
+.pips-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 0.95rem;
+}
+
+/* Table Head */
+.pips-table th {
+  background-color: #00796b;
+  color: white;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+/* Table Cells */
+.pips-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+/* Row Coloring */
+.pip-row {
+  background-color: #f9f9f9;
+  transition: background 0.3s ease;
+}
+.pip-row:hover {
+  background-color: #e0f2f1;
+}
+
+.associate-header-row td {
+  background-color: #eeeeee;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.associate-row td {
+  background-color: #fcfcfc;
+  padding-left: 2rem;
+  font-size: 0.9rem;
+  color: #333;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+/* Pagination Controls */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.pagination button:hover {
+  background: #00796b;
+  color: white;
+}
+
+.pagination button.active {
+  background: #00796b;
+  color: white;
+  font-weight: bold;
+}
+
+.pagination button:disabled {
+  background: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+}
+

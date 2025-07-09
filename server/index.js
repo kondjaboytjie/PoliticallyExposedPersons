@@ -9,6 +9,9 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 
+const pipsRoutes = require('./routes/pipsdata');
+app.use('/api/pipsdata', pipsRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
 });
