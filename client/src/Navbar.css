@@ -1,33 +1,79 @@
+/* Reset/Global */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Navbar container */
 .navbar {
   width: 100%;
-  padding: 1rem;
+  padding: 0 1rem;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   background-color: #00796b;
   color: white;
   position: relative;
+  height: 56px;
   z-index: 10;
 }
 
+/* Burger icon */
+.burger-icon {
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* Burger menu dropdown */
+.main-menu {
+  position: absolute;
+  top: 56px;
+  left: 1rem;
+  background: white;
+  color: black;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 0.5rem 0;
+  z-index: 999;
+  min-width: 180px;
+}
+
+.main-menu div {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.main-menu div:hover {
+  background-color: #f0f0f0;
+}
+
+/* User icon */
 .navbar-user {
   cursor: pointer;
 }
 
 .navbar-user img {
-  width: 40px;             /* square size */
-  height: 40px;            /* square size */
-  border-radius: 50%;      /* makes it a circle */
-  border: 2.5px solid black; /* sharp black border */
-  --padding: 2px;            /* inner spacing */
-  box-sizing: border-box;  /* includes border & padding in size */
-  background: white;       /* background inside the border */
-  display: block;          /* fixes inline img spacing */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2.5px solid black;
+  padding: 2px;
+  background: white;
+  display: block;
 }
 
-
+/* Logout dropdown */
 .logout-menu {
   position: absolute;
-  top: 60px;
+  top: 56px;
   right: 1rem;
   background: white;
   color: black;

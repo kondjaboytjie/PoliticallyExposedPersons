@@ -1,0 +1,32 @@
+/* Page.css */
+
+.page-container {
+  min-height: 100vh;
+  background: #f7f9fa;
+  display: flex;
+  justify-content: center; /* centers horizontally */
+  align-items: flex-start; /* start at top; change to 'center' for full vertical centering */
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.page-content {
+  width: 100%;
+  max-width: 800px;
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.page-content h2 {
+  margin-bottom: 1rem;
+  color: #00796b;
+  text-align: center;
+}
+
+.page-content p {
+  color: #555;
+  line-height: 1.6;
+  text-align: center;
+}
