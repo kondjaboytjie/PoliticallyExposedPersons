@@ -83,7 +83,7 @@ function PIPs() {
           'Country': p.country || 'Namibia',
           'Associate Name': '',
           'Relationship': '',
-          'Associate ID': ''
+          'Associate National ID': ''
         },
         ...p.associates.map(a => ({
           'Full Name': '',
@@ -93,7 +93,7 @@ function PIPs() {
           'Country': '',
           'Associate Name': a.associate_name,
           'Relationship': a.relationship_type,
-          'Associate ID': a.national_id
+          'Associate National ID': a.national_id
         }))
       ])
     );
@@ -105,7 +105,7 @@ function PIPs() {
   const exportPDF = () => {
     const doc = new jsPDF();
     autoTable(doc, {
-      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country', 'Associate Name', 'Relationship', 'Associate ID']],
+      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country', 'Associate Name', 'Relationship', 'Associate National ID']],
       body: pips.flatMap(p => [
         [
           p.full_name,
@@ -190,7 +190,7 @@ function PIPs() {
               <th>Country</th>
               <th>Associate Name</th>
               <th>Relationship</th>
-              <th>Associate ID</th>
+              <th>Associate National ID</th>
             </tr>
           </thead>
           <tbody>
