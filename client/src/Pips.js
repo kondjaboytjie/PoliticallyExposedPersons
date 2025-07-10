@@ -73,13 +73,30 @@ function PIPs() {
   const currentPips = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(pips.map(p => ({
-      'Full Name': p.full_name,
-      'National ID': p.national_id,
-      'Type': p.pip_type,
-      'Reason': p.reason,
-      'Country': p.country || 'Namibia'
-    })));
+    const ws = XLSX.utils.json_to_sheet(
+      pips.flatMap(p => [
+        {
+          'Full Name': p.full_name,
+          'National ID': p.national_id,
+          'Type': p.pip_type,
+          'Reason': p.reason,
+          'Country': p.country || 'Namibia',
+          'Associate Name': '',
+          'Relationship': '',
+          'Associate ID': ''
+        },
+        ...p.associates.map(a => ({
+          'Full Name': '',
+          'National ID': '',
+          'Type': '',
+          'Reason': '',
+          'Country': '',
+          'Associate Name': a.associate_name,
+          'Relationship': a.relationship_type,
+          'Associate ID': a.national_id
+        }))
+      ])
+    );
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'PIPs');
     XLSX.writeFile(wb, 'pips.xlsx');
@@ -88,14 +105,23 @@ function PIPs() {
   const exportPDF = () => {
     const doc = new jsPDF();
     autoTable(doc, {
-      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country']],
-      body: pips.map(p => [
-        p.full_name,
-        p.national_id || 'N/A',
-        p.pip_type,
-        p.reason,
-        p.country || 'Namibia'
-      ]),
+      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country', 'Associate Name', 'Relationship', 'Associate ID']],
+      body: pips.flatMap(p => [
+        [
+          p.full_name,
+          p.national_id || 'N/A',
+          p.pip_type,
+          p.reason,
+          p.country || 'Namibia',
+          '', '', ''
+        ],
+        ...p.associates.map(a => [
+          '', '', '', '', '',
+          a.associate_name,
+          a.relationship_type,
+          a.national_id || 'N/A'
+        ])
+      ])
     });
     doc.save('pips.pdf');
   };
@@ -113,13 +139,28 @@ function PIPs() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <CSVLink
-          data={pips.map(p => ({
-            full_name: p.full_name,
-            national_id: p.national_id,
-            pip_type: p.pip_type,
-            reason: p.reason,
-            country: p.country || 'Namibia'
-          }))}
+          data={pips.flatMap(p => [
+            {
+              full_name: p.full_name,
+              national_id: p.national_id,
+              pip_type: p.pip_type,
+              reason: p.reason,
+              country: p.country || 'Namibia',
+              associate_name: '',
+              relationship_type: '',
+              associate_id: ''
+            },
+            ...p.associates.map(a => ({
+              full_name: '',
+              national_id: '',
+              pip_type: '',
+              reason: '',
+              country: '',
+              associate_name: a.associate_name,
+              relationship_type: a.relationship_type,
+              associate_id: a.national_id || 'N/A'
+            }))
+          ])}
           filename="pips.csv"
           className="export-button"
         >
@@ -147,6 +188,9 @@ function PIPs() {
                 Reason {sortColumn === 'reason' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
               </th>
               <th>Country</th>
+              <th>Associate Name</th>
+              <th>Relationship</th>
+              <th>Associate ID</th>
             </tr>
           </thead>
           <tbody>
@@ -159,24 +203,23 @@ function PIPs() {
                   <td>{pip.pip_type}</td>
                   <td>{pip.reason}</td>
                   <td>{pip.country || 'Namibia'}</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
                 </tr>
-
-                {pip.associates.length > 0 && (
-                  <>
-                    <tr className="associate-header-row">
-                      <td></td>
-                      <td colSpan="5"><strong>Associates:</strong></td>
-                    </tr>
-                    {pip.associates.map((assoc) => (
-                      <tr className="associate-row" key={assoc.id}>
-                        <td></td>
-                        <td colSpan="2">{assoc.associate_name}</td>
-                        <td colSpan="2">{assoc.relationship_type}</td>
-                        <td>ID: {assoc.national_id || 'N/A'}</td>
-                      </tr>
-                    ))}
-                  </>
-                )}
+                {pip.associates.map((assoc) => (
+                  <tr className="associate-row" key={assoc.id}>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>{assoc.associate_name}</td>
+                    <td>{assoc.relationship_type}</td>
+                    <td>{assoc.national_id || 'N/A'}</td>
+                  </tr>
+                ))}
               </React.Fragment>
             ))}
           </tbody>

@@ -1,207 +1,287 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { CSVLink } from 'react-csv';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import React, { useState } from 'react';
 import './Pages.css';
 
-function PIPs() {
-  const [pips, setPips] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortColumn, setSortColumn] = useState('full_name');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [searchTerm, setSearchTerm] = useState('');
-  const itemsPerPage = 5;
+const countries = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia',
+  'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium',
+  'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil',
+  'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
+  'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo (Brazzaville)',
+  'Congo (Kinshasa)', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark',
+  'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea',
+  'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia',
+  'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau',
+  'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq',
+  'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati',
+  'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein',
+  'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta',
+  'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco',
+  'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal',
+  'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia',
+  'Norway', 'Oman', 'Pakistan', 'Palau', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru',
+  'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis',
+  'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe',
+  'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia',
+  'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain',
+  'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan',
+  'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey',
+  'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom',
+  'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+  'Yemen', 'Zambia', 'Zimbabwe'
+];
 
-  const location = useLocation();
-  const queryParam = new URLSearchParams(location.search).get('query');
-  const query = queryParam?.toLowerCase() || '';
+function DataCapturer() {
+  const [pipType, setPipType] = useState(null);
+  const [fullName, setFullName] = useState('');
+  const [nationalId, setNationalId] = useState('');
+  const [reason, setReason] = useState('');
+  const [associates, setAssociates] = useState([{ associate_name: '', relationship_type: '', national_id: '' }]);
+  const [foreignDetails, setForeignDetails] = useState({ country: '', additional_notes: '', national_id: '' });
+  const [suggestions, setSuggestions] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [showMessagePopup, setShowMessagePopup] = useState(false);
 
-  useEffect(() => {
-    setSearchTerm(query);
-  }, [query]);
+  const addAssociate = () => {
+    setAssociates([...associates, { associate_name: '', relationship_type: '', national_id: '' }]);
+  };
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`http://localhost:5000/api/pipsdata/pipsfetch?query=${query}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch PIPs');
-        return res.json();
-      })
-      .then(data => {
-        setPips(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
+  const handleAssociateChange = (index, field, value) => {
+    const updated = [...associates];
+    updated[index][field] = value;
+    setAssociates(updated);
+  };
+
+  const handleNationalIdChange = (e) => {
+    if (pipType === 'Local') {
+      // Local: only digits, max 11 chars
+      const digits = e.target.value.replace(/\D/g, '');
+      setNationalId(digits.slice(0, 11));
+    } else {
+      // Foreign: no restriction on national ID input
+      setNationalId(e.target.value);
+    }
+  };
+
+  const handleCountryChange = (e) => {
+    const val = e.target.value;
+    setForeignDetails({ ...foreignDetails, country: val });
+    if (val.trim() === '') {
+      setSuggestions([]);
+    } else {
+      const filtered = countries.filter((c) =>
+        c.toLowerCase().startsWith(val.toLowerCase())
+      );
+      setSuggestions(filtered);
+    }
+  };
+
+  const selectCountry = (country) => {
+    setForeignDetails({ ...foreignDetails, country });
+    setSuggestions([]);
+  };
+
+  const resetForm = () => {
+    setFullName('');
+    setNationalId('');
+    setReason('');
+    setAssociates([{ associate_name: '', relationship_type: '', national_id: '' }]);
+    setForeignDetails({ country: '', additional_notes: '', national_id: '' });
+    setPipType(null);
+  };
+
+  const closeMessagePopup = () => {
+    setShowMessagePopup(false);
+    setMessage('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setShowMessagePopup(false);
+
+    // Validate local national ID length & digits only
+    if (pipType === 'Local' && nationalId.length !== 11) {
+      setMessage('❌ National ID must be exactly 11 digits for local PIP');
+      setShowMessagePopup(true);
+      return;
+    }
+
+    // Validate foreign country
+    if (pipType === 'Foreign' && !countries.includes(foreignDetails.country)) {
+      setMessage('❌ Please select a valid country from the list');
+      setShowMessagePopup(true);
+      return;
+    }
+
+    setSubmitting(true);
+
+    const filteredAssociates = associates.filter(
+      (a) =>
+        a.associate_name.trim() !== '' ||
+        a.relationship_type.trim() !== '' ||
+        a.national_id.trim() !== ''
+    );
+
+    const pipData = {
+      full_name: fullName,
+      national_id: nationalId,
+      pip_type: pipType,
+      reason,
+      is_foreign: pipType === 'Foreign',
+      associates: filteredAssociates,
+      foreign: pipType === 'Foreign' ? foreignDetails : null
+    };
+
+    try {
+      const res = await fetch('http://localhost:5000/api/pipsdata/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pipData)
       });
-  }, [query]);
 
-  const handleSort = (col) => {
-    const order = sortColumn === col && sortOrder === 'asc' ? 'desc' : 'asc';
-    setSortColumn(col);
-    setSortOrder(order);
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error || 'Failed to save data');
+
+      setMessage('✅ PIP successfully captured!');
+      setShowMessagePopup(true);
+      setTimeout(() => {
+        resetForm();
+        closeMessagePopup();
+      }, 2000);
+
+    } catch (err) {
+      setMessage('❌ Error: ' + err.message);
+      setShowMessagePopup(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
-
-  const filtered = searchTerm
-    ? pips.filter(pip => {
-        const term = searchTerm.toLowerCase();
-        return (
-          pip.full_name.toLowerCase().includes(term) ||
-          (pip.national_id && pip.national_id.includes(term)) ||
-          pip.associates.some(assoc =>
-            assoc.associate_name.toLowerCase().includes(term) ||
-            (assoc.national_id && assoc.national_id.includes(term))
-          )
-        );
-      })
-    : pips;
-
-  const sorted = filtered.sort((a, b) => {
-    const valA = a[sortColumn] || '';
-    const valB = b[sortColumn] || '';
-    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  const totalPages = Math.ceil(sorted.length / itemsPerPage);
-  const currentPips = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(pips.map(p => ({
-      'Full Name': p.full_name,
-      'National ID': p.national_id,
-      'Type': p.pip_type,
-      'Reason': p.reason,
-      'Country': p.is_foreign ? (p.foreign?.country || 'Unknown') : 'Namibia'
-    })));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'PIPs');
-    XLSX.writeFile(wb, 'pips.xlsx');
-  };
-
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    autoTable(doc, {
-      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country']],
-      body: pips.map(p => [
-        p.full_name,
-        p.national_id || 'N/A',
-        p.pip_type,
-        p.reason,
-        p.is_foreign ? (p.foreign?.country || 'Unknown') : 'Namibia'
-      ]),
-    });
-    doc.save('pips.pdf');
-  };
-
-  if (loading) return <div className="page-container">Loading PIPs...</div>;
-  if (error) return <div className="page-container">Error: {error}</div>;
 
   return (
     <div className="page-container">
-      <div className="table-controls">
-        <input
-          type="text"
-          placeholder="Search by name or ID..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <CSVLink
-          data={pips.map(p => ({
-            full_name: p.full_name,
-            national_id: p.national_id,
-            pip_type: p.pip_type,
-            reason: p.reason,
-            country: p.is_foreign ? (p.foreign?.country || 'Unknown') : 'Namibia'
-          }))}
-          filename="pips.csv"
-          className="export-button"
+      <div className="button-group">
+        <button
+          className={`export-button ${pipType === 'Local' ? 'active-button' : ''}`}
+          onClick={() => setPipType('Local')}
         >
-          Export CSV
-        </CSVLink>
-        <button className="export-button" onClick={exportExcel}>Export Excel</button>
-        <button className="export-button" onClick={exportPDF}>Export PDF</button>
-      </div>
-
-      <div className="table-container">
-        <table className="pips-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th onClick={() => handleSort('full_name')}>
-                Full Name {sortColumn === 'full_name' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th onClick={() => handleSort('national_id')}>
-                National ID {sortColumn === 'national_id' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th onClick={() => handleSort('pip_type')}>
-                Type {sortColumn === 'pip_type' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th onClick={() => handleSort('reason')}>
-                Reason {sortColumn === 'reason' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th>Country</th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentPips.map((pip, index) => (
-              <React.Fragment key={pip.id}>
-                <tr className="pip-row">
-                  <td>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                  <td>{pip.full_name}</td>
-                  <td>{pip.national_id || 'N/A'}</td>
-                  <td>{pip.pip_type}</td>
-                  <td>{pip.reason}</td>
-                  <td>{pip.is_foreign ? (pip.foreign?.country || 'Unknown') : 'Namibia'}</td>
-                </tr>
-
-                {pip.associates.length > 0 && (
-                  <>
-                    <tr className="associate-header-row">
-                      <td></td>
-                      <td colSpan="5"><strong>Associates:</strong></td>
-                    </tr>
-                    {pip.associates.map((assoc) => (
-                      <tr className="associate-row" key={assoc.id}>
-                        <td></td>
-                        <td colSpan="2">{assoc.associate_name}</td>
-                        <td colSpan="2">{assoc.relationship_type}</td>
-                        <td>ID: {assoc.national_id || 'N/A'}</td>
-                      </tr>
-                    ))}
-                  </>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="pagination">
-        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
-          ← Prev
+          + Capture Local PIP
         </button>
-        {[...Array(totalPages)].map((_, idx) => (
-          <button
-            key={idx + 1}
-            onClick={() => setCurrentPage(idx + 1)}
-            className={currentPage === idx + 1 ? 'active' : ''}
-          >
-            {idx + 1}
+        <button
+          className={`export-button ${pipType === 'Foreign' ? 'active-button' : ''}`}
+          onClick={() => setPipType('Foreign')}
+        >
+          + Capture Foreign PIP
+        </button>
+      </div>
+
+      {pipType && (
+        <form className="table-container" onSubmit={handleSubmit} style={{ position: 'relative' }}>
+          <h3>{pipType} PIP Information</h3>
+
+          <div className="form-group">
+            <input
+              placeholder="Full Name"
+              value={fullName}
+              required
+              onChange={(e) => setFullName(e.target.value)}
+            />
+            <input
+              placeholder="National ID"
+              value={nationalId}
+              onChange={handleNationalIdChange}
+              inputMode={pipType === 'Local' ? 'numeric' : 'text'}
+              pattern={pipType === 'Local' ? '\\d{11}' : undefined}
+              title={pipType === 'Local' ? 'Exactly 11 digits' : undefined}
+              required
+            />
+            <input
+              placeholder="Reason"
+              value={reason}
+              required
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          {pipType === 'Foreign' && (
+            <div className="form-group" style={{ position: 'relative' }}>
+              <input
+                placeholder="Country"
+                value={foreignDetails.country}
+                required
+                onChange={handleCountryChange}
+                autoComplete="off"
+              />
+              {suggestions.length > 0 && (
+                <ul className="suggestions-list">
+                  {suggestions.map((c, i) => (
+                    <li key={i} onClick={() => selectCountry(c)}>{c}</li>
+                  ))}
+                </ul>
+              )}
+              <textarea
+                placeholder="Additional Notes"
+                value={foreignDetails.additional_notes}
+                onChange={(e) =>
+                  setForeignDetails({ ...foreignDetails, additional_notes: e.target.value })
+                }
+              />
+            </div>
+          )}
+
+          <h4 style={{ marginTop: '1rem' }}>Associates</h4>
+          {associates.map((assoc, idx) => (
+            <div key={idx} className="form-group">
+              <input
+                placeholder="Associate Name"
+                value={assoc.associate_name}
+                onChange={(e) => handleAssociateChange(idx, 'associate_name', e.target.value)}
+              />
+              <input
+                placeholder="Relationship Type"
+                value={assoc.relationship_type}
+                onChange={(e) => handleAssociateChange(idx, 'relationship_type', e.target.value)}
+              />
+              <input
+                placeholder="Associate National ID"
+                value={assoc.national_id}
+                onChange={(e) => handleAssociateChange(idx, 'national_id', e.target.value)}
+              />
+            </div>
+          ))}
+
+          <button type="button" className="export-button" onClick={addAssociate}>
+            + Add Another Associate
           </button>
-        ))}
-        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
-          Next →
-        </button>
-      </div>
+
+          <div style={{ marginTop: '2rem' }}>
+            <button type="submit" className="export-button" disabled={submitting}>
+              {submitting ? 'Saving...' : 'Submit PIP'}
+            </button>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="export-button"
+              style={{ background: '#ccc', marginLeft: '1rem' }}
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Popup Message */}
+          {showMessagePopup && (
+            <div className="message-popup">
+              <div className="message-popup-content">
+                <p>{message}</p>
+                <button onClick={closeMessagePopup} className="close-popup-button">Close</button>
+              </div>
+            </div>
+          )}
+        </form>
+      )}
     </div>
   );
 }
 
-export default PIPs;
+export default DataCapturer;

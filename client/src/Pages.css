@@ -49,11 +49,11 @@
 
 /* Row Coloring */
 .pip-row {
-  background-color: #f9f9f9;
+  background-color: #9c9898;
   transition: background 0.3s ease;
 }
 .pip-row:hover {
-  background-color: #e0f2f1;
+  background-color: #119992;
 }
 
 .associate-header-row td {
@@ -63,11 +63,11 @@
 }
 
 .associate-row td {
-  background-color: #fcfcfc;
+  background-color: #cac8c8;
   padding-left: 2rem;
   font-size: 0.9rem;
   color: #333;
-  border-bottom: 1px solid #f1f1f1;
+  border-bottom: 1px solid #0f0f0f;
 }
 
 /* Pagination Controls */
