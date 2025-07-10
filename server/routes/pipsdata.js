@@ -1,15 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db'); //PostgreSQL pool
+const pool = require('../db'); // PostgreSQL pool
 
 router.get('/pipsfetch', async (req, res) => {
   try {
     const query = (req.query.query || '').toLowerCase();
 
-    if (!query) {
-      // Return all PIPs with their associates if no search query
-      const pipsResult = await pool.query('SELECT * FROM pips ORDER BY id');
-      const associatesResult = await pool.query('SELECT * FROM pip_associates ORDER BY pip_id');
+    const fetchPipsWithDetails = async (ids) => {
+      if (ids.length === 0) return [];
+
+      const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+
+      const pipsResult = await pool.query(`
+        SELECT p.*, fp.country AS foreign_country, fp.additional_notes
+        FROM pips p
+        LEFT JOIN foreign_pips fp ON p.id = fp.pip_id
+        WHERE p.id IN (${placeholders})
+        ORDER BY p.id
+      `, ids);
+
+      const pipIds = pipsResult.rows.map(row => row.id);
+
+      const associatesResult = await pool.query(
+        `SELECT * FROM pip_associates WHERE pip_id IN (${placeholders}) ORDER BY pip_id`,
+        ids
+      );
 
       const associatesByPip = {};
       associatesResult.rows.forEach(a => {
@@ -17,23 +32,31 @@ router.get('/pipsfetch', async (req, res) => {
         associatesByPip[a.pip_id].push(a);
       });
 
-      const pipsWithAssociates = pipsResult.rows.map(pip => ({
+      return pipsResult.rows.map(pip => ({
         ...pip,
-        associates: associatesByPip[pip.id] || []
+        associates: associatesByPip[pip.id] || [],
+        country: pip.is_foreign ? (pip.foreign_country || 'Unknown') : 'Namibia',
+        foreign: pip.is_foreign ? {
+          country: pip.foreign_country,
+          additional_notes: pip.additional_notes
+        } : null
       }));
+    };
 
-      return res.json(pipsWithAssociates);
+    if (!query) {
+      const allPipsResult = await pool.query('SELECT id FROM pips ORDER BY id');
+      const allIds = allPipsResult.rows.map(r => r.id);
+      const pipsWithDetails = await fetchPipsWithDetails(allIds);
+      return res.json(pipsWithDetails);
     }
 
     const term = `%${query}%`;
 
-    // 1. Direct match in PIPs table
     const directPIPs = await pool.query(`
-      SELECT * FROM pips
+      SELECT id FROM pips
       WHERE LOWER(full_name) LIKE $1 OR national_id ILIKE $1
     `, [term]);
 
-    // 2. Match in Associates table
     const assocPipIdsResult = await pool.query(`
       SELECT DISTINCT pip_id FROM pip_associates
       WHERE LOWER(associate_name) LIKE $1 OR national_id ILIKE $1
@@ -41,37 +64,12 @@ router.get('/pipsfetch', async (req, res) => {
 
     const assocPipIds = assocPipIdsResult.rows.map(r => r.pip_id);
     const directIds = directPIPs.rows.map(p => p.id);
-
-    // Merge and deduplicate IDs
     const allIds = [...new Set([...directIds, ...assocPipIds])];
 
     if (allIds.length === 0) return res.json([]);
 
-    // 3. Fetch matching PIPs
-    const placeholders = allIds.map((_, i) => `$${i + 1}`).join(',');
-    const pipsResult = await pool.query(
-      `SELECT * FROM pips WHERE id IN (${placeholders}) ORDER BY id`,
-      allIds
-    );
-
-    // 4. Fetch associates for these PIPs
-    const associatesResult = await pool.query(
-      `SELECT * FROM pip_associates WHERE pip_id IN (${placeholders}) ORDER BY pip_id`,
-      allIds
-    );
-
-    const associatesByPip = {};
-    associatesResult.rows.forEach(a => {
-      if (!associatesByPip[a.pip_id]) associatesByPip[a.pip_id] = [];
-      associatesByPip[a.pip_id].push(a);
-    });
-
-    const final = pipsResult.rows.map(pip => ({
-      ...pip,
-      associates: associatesByPip[pip.id] || []
-    }));
-
-    res.json(final);
+    const pipsWithDetails = await fetchPipsWithDetails(allIds);
+    res.json(pipsWithDetails);
 
   } catch (err) {
     console.error('Error fetching PIPs:', err);
@@ -95,7 +93,6 @@ router.post('/create', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // 1. Insert into `pips`
     const pipInsert = await client.query(
       `INSERT INTO pips (full_name, national_id, pip_type, reason, is_foreign)
        VALUES ($1, $2, $3, $4, $5) RETURNING id`,
@@ -104,7 +101,6 @@ router.post('/create', async (req, res) => {
 
     const pipId = pipInsert.rows[0].id;
 
-    // 2. Insert associates (if any)
     if (Array.isArray(associates) && associates.length > 0) {
       for (const assoc of associates) {
         const { associate_name, relationship_type, national_id } = assoc;
@@ -116,8 +112,7 @@ router.post('/create', async (req, res) => {
       }
     }
 
-    // 3. If foreign, insert into `foreign_pips`
-    if (is_foreign && foreign && foreign.country) {
+    if (is_foreign && foreign?.country) {
       const { country, additional_notes } = foreign;
       await client.query(
         `INSERT INTO foreign_pips (pip_id, country, additional_notes)
@@ -137,6 +132,5 @@ router.post('/create', async (req, res) => {
     client.release();
   }
 });
-
 
 module.exports = router;

@@ -20,9 +20,8 @@ function PIPs() {
   const queryParam = new URLSearchParams(location.search).get('query');
   const query = queryParam?.toLowerCase() || '';
 
-  // Sync searchTerm with query parameter on mount or query change
   useEffect(() => {
-    setSearchTerm(query); // Set searchTerm to match query from URL
+    setSearchTerm(query);
   }, [query]);
 
   useEffect(() => {
@@ -79,7 +78,7 @@ function PIPs() {
       'National ID': p.national_id,
       'Type': p.pip_type,
       'Reason': p.reason,
-      'Is Foreign': p.is_foreign ? 'Yes' : 'No'
+      'Country': p.country || 'Namibia'
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'PIPs');
@@ -89,13 +88,13 @@ function PIPs() {
   const exportPDF = () => {
     const doc = new jsPDF();
     autoTable(doc, {
-      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Is Foreign']],
+      head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country']],
       body: pips.map(p => [
         p.full_name,
         p.national_id || 'N/A',
         p.pip_type,
         p.reason,
-        p.is_foreign ? 'Yes' : 'No',
+        p.country || 'Namibia'
       ]),
     });
     doc.save('pips.pdf');
@@ -113,7 +112,19 @@ function PIPs() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <CSVLink data={pips} filename="pips.csv" className="export-button">Export CSV</CSVLink>
+        <CSVLink
+          data={pips.map(p => ({
+            full_name: p.full_name,
+            national_id: p.national_id,
+            pip_type: p.pip_type,
+            reason: p.reason,
+            country: p.country || 'Namibia'
+          }))}
+          filename="pips.csv"
+          className="export-button"
+        >
+          Export CSV
+        </CSVLink>
         <button className="export-button" onClick={exportExcel}>Export Excel</button>
         <button className="export-button" onClick={exportPDF}>Export PDF</button>
       </div>
@@ -123,11 +134,19 @@ function PIPs() {
           <thead>
             <tr>
               <th>#</th>
-              <th onClick={() => handleSort('full_name')}>Full Name {sortColumn === 'full_name' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
-              <th onClick={() => handleSort('national_id')}>National ID {sortColumn === 'national_id' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
-              <th onClick={() => handleSort('pip_type')}>Type {sortColumn === 'pip_type' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
-              <th onClick={() => handleSort('reason')}>Reason {sortColumn === 'reason' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
-              <th onClick={() => handleSort('is_foreign')}>Is Foreign? {sortColumn === 'is_foreign' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
+              <th onClick={() => handleSort('full_name')}>
+                Full Name {sortColumn === 'full_name' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+              </th>
+              <th onClick={() => handleSort('national_id')}>
+                National ID {sortColumn === 'national_id' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+              </th>
+              <th onClick={() => handleSort('pip_type')}>
+                Type {sortColumn === 'pip_type' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+              </th>
+              <th onClick={() => handleSort('reason')}>
+                Reason {sortColumn === 'reason' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+              </th>
+              <th>Country</th>
             </tr>
           </thead>
           <tbody>
@@ -139,7 +158,7 @@ function PIPs() {
                   <td>{pip.national_id || 'N/A'}</td>
                   <td>{pip.pip_type}</td>
                   <td>{pip.reason}</td>
-                  <td>{pip.is_foreign ? 'Yes' : 'No'}</td>
+                  <td>{pip.country || 'Namibia'}</td>
                 </tr>
 
                 {pip.associates.length > 0 && (
@@ -165,7 +184,9 @@ function PIPs() {
       </div>
 
       <div className="pagination">
-        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>← Prev</button>
+        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
+          ← Prev
+        </button>
         {[...Array(totalPages)].map((_, idx) => (
           <button
             key={idx + 1}
@@ -175,7 +196,9 @@ function PIPs() {
             {idx + 1}
           </button>
         ))}
-        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next →</button>
+        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
+          Next →
+        </button>
       </div>
     </div>
   );
