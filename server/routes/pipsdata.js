@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db'); // Your PostgreSQL pool
+const pool = require('../db'); //PostgreSQL pool
 
 router.get('/pipsfetch', async (req, res) => {
   try {
@@ -78,5 +78,65 @@ router.get('/pipsfetch', async (req, res) => {
     res.status(500).json({ error: 'Server error fetching PIPs' });
   }
 });
+
+router.post('/create', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const {
+      full_name,
+      national_id,
+      pip_type,
+      reason,
+      is_foreign,
+      associates,
+      foreign
+    } = req.body;
+
+    await client.query('BEGIN');
+
+    // 1. Insert into `pips`
+    const pipInsert = await client.query(
+      `INSERT INTO pips (full_name, national_id, pip_type, reason, is_foreign)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [full_name, national_id, pip_type, reason, is_foreign]
+    );
+
+    const pipId = pipInsert.rows[0].id;
+
+    // 2. Insert associates (if any)
+    if (Array.isArray(associates) && associates.length > 0) {
+      for (const assoc of associates) {
+        const { associate_name, relationship_type, national_id } = assoc;
+        await client.query(
+          `INSERT INTO pip_associates (pip_id, associate_name, relationship_type, national_id)
+           VALUES ($1, $2, $3, $4)`,
+          [pipId, associate_name, relationship_type, national_id]
+        );
+      }
+    }
+
+    // 3. If foreign, insert into `foreign_pips`
+    if (is_foreign && foreign && foreign.country) {
+      const { country, additional_notes } = foreign;
+      await client.query(
+        `INSERT INTO foreign_pips (pip_id, country, additional_notes)
+         VALUES ($1, $2, $3)`,
+        [pipId, country, additional_notes || null]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json({ message: 'PIP created successfully' });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error creating PIP:', err);
+    res.status(500).json({ error: 'Server error while creating PIP' });
+  } finally {
+    client.release();
+  }
+});
+
 
 module.exports = router;
