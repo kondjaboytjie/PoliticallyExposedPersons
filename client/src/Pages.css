@@ -255,3 +255,23 @@
     margin: 0.25rem;
   }
 }
+
+.multi-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.role-chip {
+  padding: 6px 12px;
+  background: #eee;
+  border-radius: 15px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+}
+
+.role-chip.selected {
+  background: #007bff;
+  color: white;
+  font-weight: bold;
+}
