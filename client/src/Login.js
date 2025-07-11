@@ -10,7 +10,7 @@ function Login() {
   const { user, setUser } = useContext(UserContext);
   const navigate = useNavigate();
 
-  // 🚫 Redirect if already logged in
+  //Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/search');
