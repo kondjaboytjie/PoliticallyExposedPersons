@@ -1,17 +1,13 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState } from 'react';
 import { UserContext } from './UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Navbar.css';
 
 function Navbar() {
   const { user, setUser } = useContext(UserContext);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showBurgerMenu, setShowBurgerMenu] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  const userMenuRef = useRef();
-  const burgerMenuRef = useRef();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -30,63 +26,54 @@ function Navbar() {
 
   const pageTitle = routeTitles[location.pathname] || '';
 
-  // Close menus on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(e.target) &&
-        !e.target.closest('.navbar-user')
-      ) {
-        setShowUserMenu(false);
-      }
-
-      if (
-        burgerMenuRef.current &&
-        !burgerMenuRef.current.contains(e.target) &&
-        !e.target.closest('.burger-icon')
-      ) {
-        setShowBurgerMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   if (!user) return null;
 
   return (
-    <div className="navbar">
-      {/* Left: Burger Icon */}
-      <div className="burger-icon" onClick={() => setShowBurgerMenu(!showBurgerMenu)}>
-        &#9776;
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      <div className="sidebar-header">
+        <div className="toggle-btn" onClick={() => setCollapsed(!collapsed)}>
+          ☰
+        </div>
+        {!collapsed && <div className="page-title">{pageTitle}</div>}
       </div>
 
-      {/* Center: Page Title */}
-      <div className="navbar-title">{pageTitle}</div>
-
-      {/* Right: User Icon */}
-      <div className="navbar-user" onClick={() => setShowUserMenu(!showUserMenu)}>
-        <img
-          src="https://www.svgrepo.com/show/382106/logo.svg"
-          alt="User Icon"
-        />
-      </div>
-
-      {/* Burger Dropdown */}
-      {showBurgerMenu && (
-        <div className="main-menu" ref={burgerMenuRef}>
-          <div onClick={() => { navigate('/pips'); setShowBurgerMenu(false); }}>PIPs</div>
-          <div onClick={() => { navigate('/search'); setShowBurgerMenu(false); }}>Search PIPs</div>
-          <div onClick={() => { navigate('/audit'); setShowBurgerMenu(false); }}>Audit Trail</div>
-          <div onClick={() => { navigate('/datacapturer'); setShowBurgerMenu(false); }}>Data Capturer</div>
-          <div onClick={() => { navigate('/administrator'); setShowBurgerMenu(false); }}>Administrator</div>
+      {!collapsed && (
+        <div className="menu">
+          <div
+            className={location.pathname === '/pips' ? 'active' : ''}
+            onClick={() => navigate('/pips')}
+          >
+            <span role="img" aria-label="person">👤</span> PIPs
+          </div>
+          <div
+            className={location.pathname === '/search' ? 'active' : ''}
+            onClick={() => navigate('/search')}
+          >
+            <span role="img" aria-label="search">🔍</span> Search PIPs
+          </div>
+          <div
+            className={location.pathname === '/audit' ? 'active' : ''}
+            onClick={() => navigate('/audit')}
+          >
+            <span role="img" aria-label="clipboard">📋</span> Audit Trail
+          </div>
+          <div
+            className={location.pathname === '/datacapturer' ? 'active' : ''}
+            onClick={() => navigate('/datacapturer')}
+          >
+            <span role="img" aria-label="pencil">✏️</span> Data Capturer
+          </div>
+          <div
+            className={location.pathname === '/administrator' ? 'active' : ''}
+            onClick={() => navigate('/administrator')}
+          >
+            <span role="img" aria-label="gear">⚙️</span> Administrator
+          </div>
         </div>
       )}
 
-      {/* User Dropdown */}
-      {showUserMenu && (
-        <div className="logout-menu" ref={userMenuRef}>
+      {!collapsed && (
+        <div className="sidebar-footer">
           <div className="user-email">{user.email}</div>
           <button onClick={handleLogout}>Logout</button>
         </div>

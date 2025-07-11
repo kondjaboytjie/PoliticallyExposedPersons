@@ -1,110 +1,140 @@
-/* Reset/Global */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-/* Navbar container */
-.navbar {
-  width: 100%;
-  padding: 0 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Sidebar base */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 250px;
   background-color: #00796b;
   color: white;
-  position: relative;
-  height: 56px;
-  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  transition: width 0.3s ease;
+  overflow: hidden;
 }
 
-/* Burger icon */
-.burger-icon {
-  font-size: 24px;
+
+/* When collapsed */
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #00695c;
+  font-size: 1rem;
+  justify-content: space-between;
+  height: 56px; /* Consistent height */
+}
+
+
+.toggle-btn {
+  font-size: 1.5rem;
   cursor: pointer;
 }
 
-/* Burger menu dropdown */
-.main-menu {
-  position: absolute;
-  top: 56px;
-  left: 1rem;
-  background: white;
-  color: black;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  padding: 0.5rem 0;
-  z-index: 999;
-  min-width: 180px;
+.page-title {
+  font-weight: bold;
+  margin-left: 0.5rem;
+  flex: 1;
+  color: white;
 }
 
-.main-menu div {
+.menu {
+  flex: 1; /* Take remaining height after header */
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+}
+
+
+.menu div {
   padding: 0.75rem 1rem;
   cursor: pointer;
-  transition: background 0.2s;
+  background-color: #053a37;
+  transition: background 0.3s ease, color 0.3s ease;
+  font-weight: 500;
+  border-bottom: 1px solid #004d40;
 }
 
-.main-menu div:hover {
-  background-color: #f0f0f0;
+
+.menu div .menu-icon {
+  margin-right: 1rem;
+  font-size: 1.2rem;
 }
 
-/* User icon */
-.navbar-user {
-  cursor: pointer;
+
+.menu div:hover {
+  background-color: #004d40;
 }
 
-.navbar-user img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2.5px solid black;
-  padding: 2px;
-  background: white;
-  display: block;
-}
-
-/* Logout dropdown */
-.logout-menu {
-  position: absolute;
-  top: 56px;
-  right: 1rem;
-  background: white;
-  color: black;
+.sidebar-footer {
   padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  min-width: 180px;
+  background-color: #004d40;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  font-size: 0.9rem;
   text-align: left;
 }
 
-.logout-menu .user-email {
-  font-size: 0.9rem;
-  color: #333;
-  margin-bottom: 0.5rem;
-  word-break: break-all;
+.user-email {
+  color: #ccc;
+  word-break: break-word;
 }
 
-.logout-menu button {
-  background: #00796b;
-  color: white;
+.sidebar-footer button {
+  background: #ffffff;
+  color: #00796b;
   border: none;
-  padding: 0.5rem;
-  border-radius: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.3s;
+  font-weight: bold;
+  transition: background 0.3s ease;
 }
 
-.logout-menu button:hover {
-  background: #004d40;
+.sidebar-footer button:hover {
+  background-color: #eee;
+}
+
+/* Push page content to the right */
+.content-wrapper {
+  margin-left: 250px;
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar.collapsed + .content-wrapper {
+  margin-left: 60px;
+}
+
+.menu div.active {
+  background-color: #004d40;
+  font-weight: bold;
+  color: white;
+}
+
+/* Default style for all menu items */
+.menu div {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background-color: #053a37; /* Light teal for inactive */
+  transition: background 0.3s ease, color 0.3s ease;
+ 
+}
+
+/* Hover effect */
+.menu div:hover {
+  background-color: #51e4d8;
+}
+
+/* Active menu item */
+.menu div.active {
+  background-color: #0e8e76; /* Darker for active */
+  font-weight: bold;
+  color: white;
 }

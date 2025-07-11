@@ -1,11 +1,12 @@
 .search-container {
-  height: 100vh;
+  min-height: 100vh;
+  background: #e0f7fa;
+  padding: 2rem 1rem;
   display: flex;
   justify-content: center;
-  align-items: center;
-  background: #e0f7fa;
-  padding: 1rem;
+  align-items: flex-start;
 }
+
 
 .search-box {
   background: white;
