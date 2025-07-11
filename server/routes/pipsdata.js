@@ -4,6 +4,7 @@ const pool = require('../db');
 const logAuditTrail = require('../utils/logAuditTrail'); // Audit trail logger
 
 // Fetch PIPs
+// Fetch PIPs
 router.get('/pipsfetch', async (req, res) => {
   const user = req.user || {};
   const query = (req.query.query || '').toLowerCase();
@@ -60,28 +61,31 @@ router.get('/pipsfetch', async (req, res) => {
       const allIds = allPips.rows.map(r => r.id);
       const data = await fetchPipsWithDetails(allIds);
 
-      await logAuditTrail({
-        req,
-        user_id: user.id,
-        action_type: 'Search',
-        module_name: 'PIPs',
-        target: 'All PIPs',
-        result_summary: `${data.length} total PIPs`,
-        metadata: { query: '' }
-      });
+     await logAuditTrail({
+  req,
+  user_id: user.id,
+  action_type: 'Search',
+  module_name: 'PIPs',
+  target: `Query="${query}"`,
+  result_summary: `${allIds.length} matches`, // <= Count actual matched PIPs before expanding details
+  metadata: { query }
+});
+
 
       return res.json(data);
     }
 
     const term = `%${query}%`;
 
-    const [direct, associates] = await Promise.all([
-      pool.query(`SELECT id FROM pips WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1 OR national_id ILIKE $1`, [term]),
-      pool.query(`SELECT DISTINCT pip_id FROM pip_associates WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1 OR national_id ILIKE $1`, [term])
-    ]);
+    // Only search directly in PIPs table
+    const direct = await pool.query(`
+      SELECT id FROM pips
+      WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1
+      OR national_id ILIKE $1
+    `, [term]);
 
-    const allIds = [...new Set([...direct.rows.map(r => r.id), ...associates.rows.map(r => r.pip_id)])];
-    const data = await fetchPipsWithDetails(allIds);
+    const directIds = direct.rows.map(r => r.id);
+    const data = await fetchPipsWithDetails(directIds);
 
     await logAuditTrail({
       req,
@@ -89,7 +93,7 @@ router.get('/pipsfetch', async (req, res) => {
       action_type: 'Search',
       module_name: 'PIPs',
       target: `Query="${query}"`,
-      result_summary: `${data.length} matches`,
+      result_summary: `${data.length} direct matches`,
       metadata: { query }
     });
 
@@ -109,6 +113,7 @@ router.get('/pipsfetch', async (req, res) => {
     res.status(500).json({ error: 'Server error fetching PIPs' });
   }
 });
+
 
 // Create PIP
 router.post('/create', async (req, res) => {
