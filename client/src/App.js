@@ -7,9 +7,8 @@ import PIPs from './Pips';
 import AuditTrail from './AuditTrail';
 import DataCapturer from './DataCapturer';
 import { UserProvider } from './UserContext';
-
-import ManageUsers from './Admin/ManageUsers';      
-import ManagePIPs from './Admin/ManagePips.js';   
+import ManageUsers from './Administrator/ManageUsers';
+import ManagePIPs from './Administrator/ManagePips';
 
 function App() {
   return (
@@ -24,10 +23,8 @@ function App() {
               <Route path="/pips" element={<PIPs />} />
               <Route path="/audit" element={<AuditTrail />} />
               <Route path="/datacapturer" element={<DataCapturer />} />
-
-              {/* Administrator Sub-Routes */}
-              <Route path="/administrator/users" element={<ManageUsers />} />
-              <Route path="/administrator/pips" element={<ManagePIPs />} />
+              <Route path="/administrator/manageusers" element={<ManageUsers />} />
+              <Route path="/administrator/managepips" element={<ManagePIPs />} />
             </Routes>
           </div>
         </div>

@@ -57,7 +57,8 @@ function Navbar() {
         </div>
         {!collapsed && (
           <div className="page-title">
-            {routes.find(r => r.path === location.pathname)?.label || ''}
+            {routes.find(r => r.path === location.pathname)?.label ||
+             (location.pathname.startsWith('/administrator') ? 'Administrator' : '')}
           </div>
         )}
       </div>
@@ -77,28 +78,25 @@ function Navbar() {
 
         {/* Administrator dropdown */}
         <div
-          className={`menu-item ${location.pathname.startsWith('/admin') ? 'active' : ''}`}
+          className={`menu-item ${location.pathname.startsWith('/administrator') ? 'active' : ''}`}
           onClick={() => !collapsed && setAdminExpanded(!adminExpanded)}
           title="Administrator"
         >
           <span className="menu-icon"><FaKey /></span>
-          {!collapsed && (
-            <span className="menu-label">Administrator</span>
-          )}
+          {!collapsed && <span className="menu-label">Administrator</span>}
         </div>
 
-        {/* Submenu */}
         {adminExpanded && !collapsed && (
           <div className="submenu">
             <div
-              className={`submenu-item ${location.pathname === '/admin/users' ? 'active' : ''}`}
-              onClick={() => navigate('/admin/users')}
+              className={`submenu-item ${location.pathname === '/administrator/manageusers' ? 'active' : ''}`}
+              onClick={() => navigate('/administrator/manageusers')}
             >
               <FaUsers className="submenu-icon" /> Manage Users
             </div>
             <div
-              className={`submenu-item ${location.pathname === '/admin/pips' ? 'active' : ''}`}
-              onClick={() => navigate('/admin/pips')}
+              className={`submenu-item ${location.pathname === '/administrator/managepips' ? 'active' : ''}`}
+              onClick={() => navigate('/administrator/managepips')}
             >
               <FaRegAddressBook className="submenu-icon" /> Manage PIPS
             </div>
@@ -106,7 +104,6 @@ function Navbar() {
         )}
       </div>
 
-      {/* Collapsed profile icon */}
       {collapsed && (
         <div
           className="collapsed-profile"
@@ -117,7 +114,6 @@ function Navbar() {
         </div>
       )}
 
-      {/* Popout for collapsed profile */}
       {collapsed && showProfilePopup && (
         <div className="profile-popup" ref={popupRef}>
           <div className="user-email">{user.email}</div>
