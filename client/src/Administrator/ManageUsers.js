@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaPlus, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import '../Pages.css';
 
 function ManageUsers() {
@@ -69,16 +69,25 @@ function ManageUsers() {
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
   const currentUsers = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+  const toggleUserStatus = async (id, isActive) => {
+    const confirmMsg = isActive ? 'deactivate' : 'activate';
+    if (!window.confirm(`Are you sure you want to ${confirmMsg} this user?`)) return;
+
     try {
-      await fetch(`http://localhost:5000/api/users/userdelete${id}`, {
-        method: 'DELETE',
+      const res = await fetch(`http://localhost:5000/api/users/toggle-status/${id}`, {
+        method: 'PATCH',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error || 'Failed to update status');
+
+      setMessage(`✅ User ${isActive ? 'deactivated' : 'activated'} successfully`);
+      setShowMessagePopup(true);
       fetchUsers();
     } catch (err) {
-      console.error('Error deleting user', err);
+      setMessage('❌ ' + err.message);
+      setShowMessagePopup(true);
     }
   };
 
@@ -247,10 +256,10 @@ function ManageUsers() {
                   <button className="action-button" title="Edit"><FaEdit /></button>
                   <button
                     className="action-button"
-                    title="Delete"
-                    onClick={() => handleDelete(user.id)}
+                    title={user.is_active ? 'Disable' : 'Enable'}
+                    onClick={() => toggleUserStatus(user.id, user.is_active)}
                   >
-                    <FaTrash />
+                    {user.is_active ? <FaToggleOff /> : <FaToggleOn />}
                   </button>
                 </td>
               </tr>

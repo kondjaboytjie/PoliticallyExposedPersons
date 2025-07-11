@@ -147,21 +147,121 @@ router.post('/useradd', async (req, res) => {
   }
 });
 
+router.patch('/toggle-status/:id', async (req, res) => {
+  const { id } = req.params;
+  const user = req.user || {}; // The authenticated user performing the action
 
-
-// DELETE user
-router.delete('/userdelete:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
-    res.json({ message: 'User deleted' });
+    const toggle = await pool.query(
+      `UPDATE users
+       SET is_active = NOT is_active
+       WHERE id = $1
+       RETURNING id, first_name, last_name, is_active`,
+      [id]
+    );
+
+    if (toggle.rows.length === 0) {
+      if (user.id) {
+        await logAuditTrail({
+          req,
+          user_id: user.id,
+          action_type: 'Update',
+          module_name: 'Users',
+          target: `User ID ${id}`,
+          result_summary: 'User not found for toggle',
+          status: 'error'
+        });
+      }
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const updatedUser = toggle.rows[0];
+    const newStatus = updatedUser.is_active ? 'active' : 'inactive';
+
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Update',
+        module_name: 'Users',
+        target: `${updatedUser.first_name} ${updatedUser.last_name}`,
+        result_summary: `User status changed to ${newStatus}`,
+        status: 'success'
+      });
+    }
+
+    res.json({ message: `User is now ${newStatus}` });
   } catch (err) {
-    console.error('Error deleting user:', err);
-    res.status(500).json({ error: 'Failed to delete user' });
+    console.error('Error toggling user status:', err);
+
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Update',
+        module_name: 'Users',
+        target: `User ID ${id}`,
+        result_summary: err.message,
+        status: 'error'
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to update user status' });
   }
 });
 
+// disable user
+// SOFT DELETE user (sets is_active = false)
+router.delete('/userdelete:id', async (req, res) => {
+  const userId = req.params.id;
+  const user = req.user || {};
+
+  try {
+    const result = await pool.query(
+      'UPDATE users SET is_active = FALSE WHERE id = $1 RETURNING id, email',
+      [userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Audit log
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Delete',
+        module_name: 'Users',
+        target: result.rows[0].email,
+        result_summary: 'User marked as inactive',
+        status: 'success'
+      });
+    }
+
+    res.json({ message: 'User marked as inactive' });
+  } catch (err) {
+    console.error('Error disabling user:', err);
+
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Delete',
+        module_name: 'Users',
+        target: `User ID ${userId}`,
+        result_summary: err.message,
+        status: 'error'
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to disable user' });
+  }
+});
+
+
+
 //fetchroles
-// In routes/users.js
 router.get('/rolesfetch', async (req, res) => {
   try {
     const result = await pool.query(`SELECT id, name FROM roles WHERE is_active = true ORDER BY name`);
