@@ -98,7 +98,6 @@ function AuditTrail() {
 
   return (
     <div className="page-container">
-      <h2>Audit Trail</h2>
       <div className="table-controls">
         <input
           type="text"

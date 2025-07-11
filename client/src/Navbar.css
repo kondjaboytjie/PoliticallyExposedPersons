@@ -190,20 +190,23 @@ html, body {
 
 /* Submenu */
 .submenu {
-  background-color: #00574d;
+  background-color: transparent; /* Remove full background color */
   display: flex;
   flex-direction: column;
+  padding-left: 2rem; /* Indent to show it's nested under Administrator */
 }
 
 .submenu-item {
-  padding: 0.5rem 1.5rem;
+  background-color: #00574d; /* Localized background */
+   margin: 0.1rem 0.08rem;     /*  Keep it narrow and indented */
+  padding: 0.5rem 1rem;
   font-size: 0.95rem;
   cursor: pointer;
   color: #fff;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  border-bottom: 1px solid #004d40;
+  /* border-radius: 4px;         Rounded for visual nesting */
   transition: background 0.2s ease;
 }
 
@@ -216,8 +219,4 @@ html, body {
   background-color: #0e8e76;
   font-weight: bold;
   color: white;
-}
-
-.submenu-icon {
-  font-size: 1rem;
 }
