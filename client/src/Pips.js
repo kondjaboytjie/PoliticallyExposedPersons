@@ -7,8 +7,7 @@ import autoTable from 'jspdf-autotable';
 import './Pages.css';
 
 function PIPs() {
-  const [pips, setPips] = useState([]);
-  const [allPips, setAllPips] = useState([]); // raw data store
+  const [allPips, setAllPips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,11 +20,9 @@ function PIPs() {
   const queryParam = new URLSearchParams(location.search).get('query');
   const initialQuery = queryParam?.toLowerCase() || '';
 
-  // Build full name of associate
   const getAssociateName = (assoc) =>
     [assoc.first_name, assoc.middle_name, assoc.last_name].filter(Boolean).join(' ');
 
-  // Initial load: fetch all data
   useEffect(() => {
     setLoading(true);
     fetch('http://localhost:5000/api/pipsdata/pipsfetch')
@@ -35,7 +32,7 @@ function PIPs() {
       })
       .then(data => {
         setAllPips(data);
-        setSearchTerm(initialQuery); // set initial search
+        setSearchTerm(initialQuery);
         setLoading(false);
       })
       .catch(err => {
@@ -50,7 +47,6 @@ function PIPs() {
     setSortOrder(order);
   };
 
-  // Filter pips client-side based on current input
   const filtered = searchTerm
     ? allPips.filter(pip => {
         const term = searchTerm.toLowerCase();
@@ -68,9 +64,7 @@ function PIPs() {
   const sorted = filtered.sort((a, b) => {
     const valA = (a[sortColumn] || '').toString().toLowerCase();
     const valB = (b[sortColumn] || '').toString().toLowerCase();
-    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
+    return valA < valB ? (sortOrder === 'asc' ? -1 : 1) : valA > valB ? (sortOrder === 'asc' ? 1 : -1) : 0;
   });
 
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
@@ -145,36 +139,38 @@ function PIPs() {
             setCurrentPage(1);
           }}
         />
-        <CSVLink
-          data={allPips.flatMap(p => [
-            {
-              full_name: p.full_name,
-              national_id: p.national_id,
-              pip_type: p.pip_type,
-              reason: p.reason,
-              country: p.country || 'Namibia',
-              associate_name: '',
-              relationship_type: '',
-              associate_id: ''
-            },
-            ...p.associates.map(a => ({
-              full_name: '',
-              national_id: '',
-              pip_type: '',
-              reason: '',
-              country: '',
-              associate_name: getAssociateName(a),
-              relationship_type: a.relationship_type,
-              associate_id: a.national_id || 'N/A'
-            }))
-          ])}
-          filename="pips.csv"
-          className="export-button"
-        >
-          Export CSV
-        </CSVLink>
-        <button className="export-button" onClick={exportExcel}>Export Excel</button>
-        <button className="export-button" onClick={exportPDF}>Export PDF</button>
+        <div className="button-group">
+          <CSVLink
+            data={allPips.flatMap(p => [
+              {
+                full_name: p.full_name,
+                national_id: p.national_id,
+                pip_type: p.pip_type,
+                reason: p.reason,
+                country: p.country || 'Namibia',
+                associate_name: '',
+                relationship_type: '',
+                associate_id: ''
+              },
+              ...p.associates.map(a => ({
+                full_name: '',
+                national_id: '',
+                pip_type: '',
+                reason: '',
+                country: '',
+                associate_name: getAssociateName(a),
+                relationship_type: a.relationship_type,
+                associate_id: a.national_id || 'N/A'
+              }))
+            ])}
+            filename="pips.csv"
+            className="export-button"
+          >
+            Export CSV
+          </CSVLink>
+          <button className="export-button" onClick={exportExcel}>Export Excel</button>
+          <button className="export-button" onClick={exportPDF}>Export PDF</button>
+        </div>
       </div>
 
       <div className="table-container">
@@ -210,18 +206,11 @@ function PIPs() {
                   <td>{pip.pip_type}</td>
                   <td>{pip.reason}</td>
                   <td>{pip.country || 'Namibia'}</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
+                  <td></td><td></td><td></td>
                 </tr>
                 {pip.associates.map((assoc) => (
                   <tr className="associate-row" key={assoc.id || `${assoc.first_name}-${assoc.last_name}`}>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td>
                     <td>{getAssociateName(assoc)}</td>
                     <td>{assoc.relationship_type}</td>
                     <td>{assoc.national_id || 'N/A'}</td>
@@ -234,9 +223,7 @@ function PIPs() {
       </div>
 
       <div className="pagination">
-        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
-          ← Prev
-        </button>
+        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>← Prev</button>
         {[...Array(totalPages)].map((_, idx) => (
           <button
             key={idx + 1}
@@ -246,9 +233,7 @@ function PIPs() {
             {idx + 1}
           </button>
         ))}
-        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>
-          Next →
-        </button>
+        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next →</button>
       </div>
     </div>
   );

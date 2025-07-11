@@ -1,4 +1,4 @@
-/* Global Reset */
+/* Reset */
 *,
 *::before,
 *::after {
@@ -11,7 +11,7 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Sidebar base */
+/* Sidebar */
 .sidebar {
   position: fixed;
   top: 0;
@@ -95,7 +95,6 @@ html, body {
   font-size: 1.25rem;
 }
 
-/* Hide label when collapsed */
 .sidebar.collapsed .menu-label {
   display: none;
 }
@@ -116,7 +115,8 @@ html, body {
   word-break: break-word;
 }
 
-.sidebar-footer button {
+.sidebar-footer button,
+.profile-popup button {
   background: #ffffff;
   color: #00796b;
   border: none;
@@ -127,8 +127,37 @@ html, body {
   transition: background 0.3s ease;
 }
 
-.sidebar-footer button:hover {
+.sidebar-footer button:hover,
+.profile-popup button:hover {
   background-color: #eee;
+}
+
+/* Collapsed Profile */
+.collapsed-profile {
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+  background-color: #004d40;
+  cursor: pointer;
+}
+
+.profile-icon {
+  font-size: 1.75rem;
+  color: white;
+}
+
+/* Popup */
+.profile-popup {
+  position: absolute;
+  bottom: 60px;
+  left: 60px;
+  background: white;
+  color: #333;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  width: 200px;
+  z-index: 2000;
 }
 
 /* Content shift */
@@ -141,7 +170,7 @@ html, body {
   margin-left: 60px;
 }
 
-/* Responsive adjustments */
+/* Responsive */
 @media (max-width: 768px) {
   .sidebar {
     position: relative;
@@ -156,20 +185,5 @@ html, body {
   .content-wrapper,
   .sidebar.collapsed + .content-wrapper {
     margin-left: 0;
-  }
-
-  .sidebar-header {
-    flex-direction: row;
-    justify-content: space-between;
-  }
-
-  .menu-item {
-    padding: 1rem;
-    font-size: 1rem;
-    gap: 0.75rem;
-  }
-
-  .sidebar-footer {
-    align-items: flex-start;
   }
 }

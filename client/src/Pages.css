@@ -4,7 +4,7 @@
   background-color: #f0fdfc;
   border-radius: 1rem;
   box-shadow: 0 8px 24px rgba(0, 121, 107, 0.1);
-  margin-top: 2rem;
+ 
   padding: 1rem;
 }
 
@@ -55,18 +55,59 @@
   background-color: #119992;
 }
 
-.associate-header-row td {
-  background-color: #eeeeee;
-  font-style: italic;
-  font-weight: 500;
-}
-
 .associate-row td {
   background-color: #cac8c8;
   padding-left: 2rem;
   font-size: 0.9rem;
   color: #333;
   border-bottom: 1px solid #0f0f0f;
+}
+
+.table-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  justify-content: space-between;
+}
+
+.table-controls input {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 0.4rem;
+  border: 1px solid #ccc;
+  flex-grow: 1;
+  max-width: 300px;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.export-button {
+  background: #00796b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: background 0.3s;
+  white-space: nowrap;
+}
+
+.export-button:hover {
+  background: #004d40;
+}
+
+.export-button.active-button {
+  background: #004d40;
 }
 
 .pagination {
@@ -103,54 +144,7 @@
   cursor: not-allowed;
 }
 
-.table-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.table-controls input {
-  padding: 0.5rem;
-  font-size: 1rem;
-  border-radius: 0.4rem;
-  border: 1px solid #ccc;
-  flex-grow: 1;
-  max-width: 300px;
-}
-
-.export-button {
-  background: #00796b;
-  color: white;
-  border: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.4rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  text-decoration: none;
-  transition: background 0.3s;
-  width: 100%;
-  max-width: 300px;
-  margin-top: 0.5rem;
-}
-
-.export-button:hover {
-  background: #004d40;
-}
-
-.button-group {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-}
-
-.export-button.active-button {
-  background: #004d40;
-}
-
+/* Forms and text input styles */
 .form-group {
   display: flex;
   flex-direction: column;
@@ -174,6 +168,7 @@
   margin-bottom: 1rem;
 }
 
+/* Suggestions dropdown styling */
 .suggestions-list {
   position: absolute;
   background: white;
@@ -197,6 +192,7 @@
   background: #e0f2f1;
 }
 
+/* Message Popup Styling */
 .message-popup {
   position: absolute;
   top: 50%;
@@ -242,6 +238,11 @@
   .export-button {
     width: 100%;
     box-sizing: border-box;
+  }
+
+  .button-group {
+    justify-content: stretch;
+    width: 100%;
   }
 
   .pagination {
