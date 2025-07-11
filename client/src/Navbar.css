@@ -1,3 +1,16 @@
+/* Global Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 /* Sidebar base */
 .sidebar {
   position: fixed;
@@ -18,6 +31,7 @@
   width: 60px;
 }
 
+/* Header */
 .sidebar-header {
   display: flex;
   align-items: center;
@@ -31,6 +45,7 @@
 .toggle-btn {
   font-size: 1.5rem;
   cursor: pointer;
+  color: white;
 }
 
 .page-title {
@@ -38,8 +53,12 @@
   margin-left: 0.5rem;
   flex: 1;
   color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Menu */
 .menu {
   flex: 1;
   display: flex;
@@ -48,30 +67,40 @@
   margin: 0;
 }
 
-.menu div {
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
   cursor: pointer;
   background-color: #053a37;
-  transition: background 0.3s ease, color 0.3s ease;
+  color: white;
   font-weight: 500;
+  transition: background 0.3s ease, color 0.3s ease;
   border-bottom: 1px solid #004d40;
 }
 
-.menu div .menu-icon {
-  margin-right: 1rem;
-  font-size: 1.2rem;
-}
-
-.menu div:hover {
+.menu-item:hover {
   background-color: #51e4d8;
+  color: #00332b;
 }
 
-.menu div.active {
+.menu-item.active {
   background-color: #0e8e76;
   font-weight: bold;
   color: white;
 }
 
+.menu-icon {
+  font-size: 1.25rem;
+}
+
+/* Hide label when collapsed */
+.sidebar.collapsed .menu-label {
+  display: none;
+}
+
+/* Footer */
 .sidebar-footer {
   padding: 1rem;
   background-color: #004d40;
@@ -102,6 +131,7 @@
   background-color: #eee;
 }
 
+/* Content shift */
 .content-wrapper {
   margin-left: 250px;
   transition: margin-left 0.3s ease;
@@ -111,7 +141,7 @@
   margin-left: 60px;
 }
 
-/* Responsive Enhancements */
+/* Responsive adjustments */
 @media (max-width: 768px) {
   .sidebar {
     position: relative;
@@ -133,17 +163,13 @@
     justify-content: space-between;
   }
 
-  .menu div {
+  .menu-item {
     padding: 1rem;
     font-size: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 1px solid #004d40;
+    gap: 0.75rem;
   }
 
   .sidebar-footer {
-    flex-direction: column;
     align-items: flex-start;
   }
 }

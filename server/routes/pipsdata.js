@@ -1,184 +1,194 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db'); // PostgreSQL pool
+const pool = require('../db');
+const logAuditTrail = require('../utils/logAuditTrail'); // Audit trail logger
 
+// Fetch PIPs
 router.get('/pipsfetch', async (req, res) => {
+  const user = req.user || {};
+  const query = (req.query.query || '').toLowerCase();
+
+  const fetchPipsWithDetails = async (ids) => {
+    if (ids.length === 0) return [];
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+
+    const pipsResult = await pool.query(`
+      SELECT p.*, 
+        fp.country AS foreign_country, 
+        fp.additional_notes,
+        CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name) AS full_name
+      FROM pips p
+      LEFT JOIN foreign_pips fp ON p.id = fp.pip_id
+      WHERE p.id IN (${placeholders})
+      ORDER BY p.id
+    `, ids);
+
+    const pipIds = pipsResult.rows.map(r => r.id);
+
+    const [associatesResult, institutionsResult] = await Promise.all([
+      pool.query(`SELECT * FROM pip_associates WHERE pip_id IN (${placeholders})`, ids),
+      pool.query(`SELECT * FROM pip_institutions WHERE pip_id IN (${placeholders})`, ids)
+    ]);
+
+    const associatesByPip = {};
+    associatesResult.rows.forEach(a => {
+      if (!associatesByPip[a.pip_id]) associatesByPip[a.pip_id] = [];
+      associatesByPip[a.pip_id].push(a);
+    });
+
+    const institutionsByPip = {};
+    institutionsResult.rows.forEach(inst => {
+      if (!institutionsByPip[inst.pip_id]) institutionsByPip[inst.pip_id] = [];
+      institutionsByPip[inst.pip_id].push(inst);
+    });
+
+    return pipsResult.rows.map(pip => ({
+      ...pip,
+      associates: associatesByPip[pip.id] || [],
+      institutions: institutionsByPip[pip.id] || [],
+      country: pip.is_foreign ? (pip.foreign_country || 'Unknown') : 'Namibia',
+      foreign: pip.is_foreign ? {
+        country: pip.foreign_country,
+        additional_notes: pip.additional_notes
+      } : null
+    }));
+  };
+
   try {
-    const query = (req.query.query || '').toLowerCase();
-
-    const fetchPipsWithDetails = async (ids) => {
-      if (ids.length === 0) return [];
-
-      const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
-
-      // Fetch main PIP info with foreign details
-      const pipsResult = await pool.query(`
-        SELECT p.*, 
-          fp.country AS foreign_country, 
-          fp.additional_notes,
-          -- Concatenate full name for frontend convenience
-          CONCAT_WS(' ', p.first_name, p.middle_name, p.last_name) AS full_name
-        FROM pips p
-        LEFT JOIN foreign_pips fp ON p.id = fp.pip_id
-        WHERE p.id IN (${placeholders})
-        ORDER BY p.id
-      `, ids);
-
-      const pipIds = pipsResult.rows.map(row => row.id);
-
-      // Fetch associates
-      const associatesResult = await pool.query(
-        `SELECT * FROM pip_associates WHERE pip_id IN (${placeholders}) ORDER BY pip_id`,
-        ids
-      );
-
-      // Group associates by pip_id
-      const associatesByPip = {};
-      associatesResult.rows.forEach(a => {
-        if (!associatesByPip[a.pip_id]) associatesByPip[a.pip_id] = [];
-        associatesByPip[a.pip_id].push(a);
-      });
-
-      // Fetch institutions
-      const institutionsResult = await pool.query(
-        `SELECT * FROM pip_institutions WHERE pip_id IN (${placeholders}) ORDER BY pip_id`,
-        ids
-      );
-
-      // Group institutions by pip_id
-      const institutionsByPip = {};
-      institutionsResult.rows.forEach(inst => {
-        if (!institutionsByPip[inst.pip_id]) institutionsByPip[inst.pip_id] = [];
-        institutionsByPip[inst.pip_id].push(inst);
-      });
-
-      // Return combined data
-      return pipsResult.rows.map(pip => ({
-        ...pip,
-        associates: associatesByPip[pip.id] || [],
-        institutions: institutionsByPip[pip.id] || [],
-        country: pip.is_foreign ? (pip.foreign_country || 'Unknown') : 'Namibia',
-        foreign: pip.is_foreign ? {
-          country: pip.foreign_country,
-          additional_notes: pip.additional_notes
-        } : null
-      }));
-    };
-
     if (!query) {
-      const allPipsResult = await pool.query('SELECT id FROM pips ORDER BY id');
-      const allIds = allPipsResult.rows.map(r => r.id);
-      const pipsWithDetails = await fetchPipsWithDetails(allIds);
-      return res.json(pipsWithDetails);
+      const allPips = await pool.query('SELECT id FROM pips ORDER BY id');
+      const allIds = allPips.rows.map(r => r.id);
+      const data = await fetchPipsWithDetails(allIds);
+
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Search',
+        module_name: 'PIPs',
+        target: 'All PIPs',
+        result_summary: `${data.length} total PIPs`,
+        metadata: { query: '' }
+      });
+
+      return res.json(data);
     }
 
     const term = `%${query}%`;
 
-    // Search PIPs by concatenated name or national_id
-    const directPIPs = await pool.query(`
-      SELECT id FROM pips
-      WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1
-        OR national_id ILIKE $1
-    `, [term]);
+    const [direct, associates] = await Promise.all([
+      pool.query(`SELECT id FROM pips WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1 OR national_id ILIKE $1`, [term]),
+      pool.query(`SELECT DISTINCT pip_id FROM pip_associates WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1 OR national_id ILIKE $1`, [term])
+    ]);
 
-    // Search associates by concatenated name or national_id
-    const assocPipIdsResult = await pool.query(`
-      SELECT DISTINCT pip_id FROM pip_associates
-      WHERE LOWER(CONCAT_WS(' ', first_name, middle_name, last_name)) LIKE $1
-        OR national_id ILIKE $1
-    `, [term]);
+    const allIds = [...new Set([...direct.rows.map(r => r.id), ...associates.rows.map(r => r.pip_id)])];
+    const data = await fetchPipsWithDetails(allIds);
 
-    const assocPipIds = assocPipIdsResult.rows.map(r => r.pip_id);
-    const directIds = directPIPs.rows.map(p => p.id);
-    const allIds = [...new Set([...directIds, ...assocPipIds])];
+    await logAuditTrail({
+      req,
+      user_id: user.id,
+      action_type: 'Search',
+      module_name: 'PIPs',
+      target: `Query="${query}"`,
+      result_summary: `${data.length} matches`,
+      metadata: { query }
+    });
 
-    if (allIds.length === 0) return res.json([]);
-
-    const pipsWithDetails = await fetchPipsWithDetails(allIds);
-    res.json(pipsWithDetails);
-
+    res.json(data);
   } catch (err) {
-    console.error('Error fetching PIPs:', err);
+    console.error('Fetch error:', err);
+    await logAuditTrail({
+      req,
+      user_id: user.id,
+      action_type: 'Search',
+      module_name: 'PIPs',
+      target: query,
+      result_summary: err.message,
+      status: 'error',
+      metadata: { query }
+    });
     res.status(500).json({ error: 'Server error fetching PIPs' });
   }
 });
 
-
+// Create PIP
 router.post('/create', async (req, res) => {
   const client = await pool.connect();
+  const user = req.user || {};
 
   try {
     const {
-      first_name,
-      middle_name,
-      last_name,
-      national_id,
-      pip_type,
-      reason,
-      is_foreign,
-      associates,
-      institutions,
-      foreign
+      first_name, middle_name, last_name, national_id, pip_type,
+      reason, is_foreign, associates, institutions, foreign
     } = req.body;
 
     await client.query('BEGIN');
 
-    // Insert into pips with separate name fields
-    const pipInsert = await client.query(
+    const pipRes = await client.query(
       `INSERT INTO pips (first_name, middle_name, last_name, national_id, pip_type, reason, is_foreign)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [first_name, middle_name, last_name, national_id, pip_type, reason, is_foreign]
     );
 
-    const pipId = pipInsert.rows[0].id;
+    const pipId = pipRes.rows[0].id;
 
-    // Insert associates with separate name fields
-    if (Array.isArray(associates) && associates.length > 0) {
-      for (const assoc of associates) {
-        const { first_name, middle_name, last_name, relationship_type, national_id } = assoc;
+    if (Array.isArray(associates)) {
+      for (const a of associates) {
         await client.query(
           `INSERT INTO pip_associates (pip_id, first_name, middle_name, last_name, relationship_type, national_id)
            VALUES ($1, $2, $3, $4, $5, $6)`,
-          [pipId, first_name, middle_name || null, last_name, relationship_type || null, national_id || null]
+          [pipId, a.first_name, a.middle_name || null, a.last_name, a.relationship_type || null, a.national_id || null]
         );
       }
     }
 
-    // Insert institutions
-    if (Array.isArray(institutions) && institutions.length > 0) {
+    if (Array.isArray(institutions)) {
       for (const inst of institutions) {
-        const { institution_name, institution_type, position, start_date, end_date } = inst;
-        if (institution_name && institution_name.trim() !== '') {
-          await client.query(
-            `INSERT INTO pip_institutions (pip_id, institution_name, institution_type, position, start_date, end_date)
-             VALUES ($1, $2, $3, $4, $5, $6)`,
-            [pipId, institution_name, institution_type || null, position || null, start_date || null, end_date || null]
-          );
-        }
+        await client.query(
+          `INSERT INTO pip_institutions (pip_id, institution_name, institution_type, position, start_date, end_date)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [pipId, inst.institution_name, inst.institution_type || null, inst.position || null, inst.start_date || null, inst.end_date || null]
+        );
       }
     }
 
-    // Insert foreign details
     if (is_foreign && foreign?.country) {
-      const { country, additional_notes } = foreign;
       await client.query(
         `INSERT INTO foreign_pips (pip_id, country, additional_notes)
          VALUES ($1, $2, $3)`,
-        [pipId, country, additional_notes || null]
+        [pipId, foreign.country, foreign.additional_notes || null]
       );
     }
 
     await client.query('COMMIT');
-    res.status(201).json({ message: 'PIP created successfully' });
 
+    await logAuditTrail({
+      req,
+      user_id: user.id,
+      action_type: 'Create',
+      module_name: 'PIPs',
+      target: `${first_name} ${last_name}`,
+      result_summary: 'PIP created successfully',
+      metadata: req.body
+    });
+
+    res.status(201).json({ message: 'PIP created successfully' });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('Error creating PIP:', err);
+    console.error('Create error:', err);
+    await logAuditTrail({
+      req,
+      user_id: user.id,
+      action_type: 'Create',
+      module_name: 'PIPs',
+      target: `${req.body?.first_name || ''} ${req.body?.last_name || ''}`,
+      result_summary: err.message,
+      status: 'error',
+      metadata: req.body
+    });
     res.status(500).json({ error: 'Server error while creating PIP' });
   } finally {
     client.release();
   }
 });
-
 
 module.exports = router;

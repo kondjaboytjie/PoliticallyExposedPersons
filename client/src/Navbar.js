@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { UserContext } from './UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { FaUser, FaSearch, FaClipboardList, FaDatabase, FaKey } from 'react-icons/fa';
 import './Navbar.css';
 
 function Navbar() {
@@ -16,61 +17,35 @@ function Navbar() {
     navigate('/');
   };
 
-  const routeTitles = {
-    '/pips': 'Politically Exposed Persons',
-    '/search': 'Search PIPs',
-    '/audit': 'System Audit Trail',
-    '/datacapturer': 'Data Capturer',
-    '/administrator': 'Admin Panel',
-  };
-
-  const pageTitle = routeTitles[location.pathname] || '';
+  const routes = [
+    { path: '/pips', label: 'PIPs', icon: <FaUser /> },
+    { path: '/search', label: 'Search PIPs', icon: <FaSearch /> },
+    { path: '/audit', label: 'Audit Trail', icon: <FaClipboardList /> },
+    { path: '/datacapturer', label: 'Data Capturer', icon: <FaDatabase /> },
+    { path: '/administrator', label: 'Administrator', icon: <FaKey /> },
+  ];
 
   if (!user) return null;
 
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <div className="toggle-btn" onClick={() => setCollapsed(!collapsed)}>
-          ☰
-        </div>
-        {!collapsed && <div className="page-title">{pageTitle}</div>}
+        <div className="toggle-btn" onClick={() => setCollapsed(!collapsed)}>☰</div>
+        {!collapsed && <div className="page-title">{routes.find(r => r.path === location.pathname)?.label}</div>}
       </div>
 
-      {!collapsed && (
-        <div className="menu">
+      <div className="menu">
+        {routes.map(({ path, label, icon }) => (
           <div
-            className={location.pathname === '/pips' ? 'active' : ''}
-            onClick={() => navigate('/pips')}
+            key={path}
+            className={`menu-item ${location.pathname === path ? 'active' : ''}`}
+            onClick={() => navigate(path)}
           >
-            <span role="img" aria-label="person">👤</span> PIPs
+            <span className="menu-icon">{icon}</span>
+            {!collapsed && <span className="menu-label">{label}</span>}
           </div>
-          <div
-            className={location.pathname === '/search' ? 'active' : ''}
-            onClick={() => navigate('/search')}
-          >
-            <span role="img" aria-label="search">🔍</span> Search PIPs
-          </div>
-          <div
-            className={location.pathname === '/audit' ? 'active' : ''}
-            onClick={() => navigate('/audit')}
-          >
-            <span role="img" aria-label="clipboard">📋</span> Audit Trail
-          </div>
-          <div
-            className={location.pathname === '/datacapturer' ? 'active' : ''}
-            onClick={() => navigate('/datacapturer')}
-          >
-            <span role="img" aria-label="pencil">✏️</span> Data Capturer
-          </div>
-          <div
-            className={location.pathname === '/administrator' ? 'active' : ''}
-            onClick={() => navigate('/administrator')}
-          >
-            <span role="img" aria-label="gear">⚙️</span> Administrator
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
 
       {!collapsed && (
         <div className="sidebar-footer">
