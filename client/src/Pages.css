@@ -1,4 +1,3 @@
-/* Beautiful Page Container */
 .page-container {
   max-width: 1200px;
   margin: auto;
@@ -6,25 +5,24 @@
   border-radius: 1rem;
   box-shadow: 0 8px 24px rgba(0, 121, 107, 0.1);
   margin-top: 2rem;
+  padding: 1rem;
 }
 
-/* Title Styling */
 .page-container h2 {
   text-align: center;
   color: #004d40;
   margin-bottom: 1.5rem;
 }
 
-/* Responsive Table Container */
 .table-container {
   overflow-x: auto;
   border-radius: 0.5rem;
   background: white;
   padding: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Table Base */
 .pips-table {
   width: 100%;
   border-collapse: collapse;
@@ -32,26 +30,27 @@
   font-size: 0.95rem;
 }
 
-/* Table Head */
 .pips-table th {
   background-color: #00796b;
   color: white;
   padding: 0.75rem 1rem;
   text-align: left;
   font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
 }
 
-/* Table Cells */
 .pips-table td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #eee;
 }
 
-/* Row Coloring */
 .pip-row {
   background-color: #9c9898;
   transition: background 0.3s ease;
 }
+
 .pip-row:hover {
   background-color: #119992;
 }
@@ -70,7 +69,6 @@
   border-bottom: 1px solid #0f0f0f;
 }
 
-/* Pagination Controls */
 .pagination {
   display: flex;
   justify-content: center;
@@ -132,19 +130,15 @@
   font-size: 0.9rem;
   text-decoration: none;
   transition: background 0.3s;
+  width: 100%;
+  max-width: 300px;
+  margin-top: 0.5rem;
 }
 
 .export-button:hover {
   background: #004d40;
 }
 
-.pips-table th {
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-}
-
-/* Add below existing CSS */
 .button-group {
   display: flex;
   justify-content: center;
@@ -234,4 +228,29 @@
 
 .close-popup-button:hover {
   background: #222;
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .table-controls input,
+  .export-button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pagination {
+    flex-direction: row;
+    justify-content: space-evenly;
+  }
+
+  .pagination button {
+    flex: 1;
+    margin: 0.25rem;
+  }
 }

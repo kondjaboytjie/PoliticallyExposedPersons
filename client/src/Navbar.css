@@ -14,8 +14,6 @@
   overflow: hidden;
 }
 
-
-/* When collapsed */
 .sidebar.collapsed {
   width: 60px;
 }
@@ -27,9 +25,8 @@
   background-color: #00695c;
   font-size: 1rem;
   justify-content: space-between;
-  height: 56px; /* Consistent height */
+  height: 56px;
 }
-
 
 .toggle-btn {
   font-size: 1.5rem;
@@ -44,13 +41,12 @@
 }
 
 .menu {
-  flex: 1; /* Take remaining height after header */
+  flex: 1;
   display: flex;
   flex-direction: column;
   padding: 0;
   margin: 0;
 }
-
 
 .menu div {
   padding: 0.75rem 1rem;
@@ -61,15 +57,19 @@
   border-bottom: 1px solid #004d40;
 }
 
-
 .menu div .menu-icon {
   margin-right: 1rem;
   font-size: 1.2rem;
 }
 
-
 .menu div:hover {
-  background-color: #004d40;
+  background-color: #51e4d8;
+}
+
+.menu div.active {
+  background-color: #0e8e76;
+  font-weight: bold;
+  color: white;
 }
 
 .sidebar-footer {
@@ -102,7 +102,6 @@
   background-color: #eee;
 }
 
-/* Push page content to the right */
 .content-wrapper {
   margin-left: 250px;
   transition: margin-left 0.3s ease;
@@ -112,29 +111,39 @@
   margin-left: 60px;
 }
 
-.menu div.active {
-  background-color: #004d40;
-  font-weight: bold;
-  color: white;
-}
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+  }
 
-/* Default style for all menu items */
-.menu div {
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  background-color: #053a37; /* Light teal for inactive */
-  transition: background 0.3s ease, color 0.3s ease;
- 
-}
+  .sidebar.collapsed {
+    width: 100%;
+  }
 
-/* Hover effect */
-.menu div:hover {
-  background-color: #51e4d8;
-}
+  .content-wrapper,
+  .sidebar.collapsed + .content-wrapper {
+    margin-left: 0;
+  }
 
-/* Active menu item */
-.menu div.active {
-  background-color: #0e8e76; /* Darker for active */
-  font-weight: bold;
-  color: white;
+  .sidebar-header {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .menu div {
+    padding: 1rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #004d40;
+  }
+
+  .sidebar-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
