@@ -20,6 +20,9 @@ app.use('/api/pipsdata', pipsRoutes);
 const auditTrailRoutes = require('./routes/audittrails');
 app.use('/api/audittrails', auditTrailRoutes);
 
+const userRoutes = require('./routes/users');
+app.use('/api/users', userRoutes);
+
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
 });

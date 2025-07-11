@@ -187,3 +187,37 @@ html, body {
     margin-left: 0;
   }
 }
+
+/* Submenu */
+.submenu {
+  background-color: #00574d;
+  display: flex;
+  flex-direction: column;
+}
+
+.submenu-item {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #004d40;
+  transition: background 0.2s ease;
+}
+
+.submenu-item:hover {
+  background-color: #51e4d8;
+  color: #00332b;
+}
+
+.submenu-item.active {
+  background-color: #0e8e76;
+  font-weight: bold;
+  color: white;
+}
+
+.submenu-icon {
+  font-size: 1rem;
+}

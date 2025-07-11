@@ -8,7 +8,9 @@ import {
   FaDatabase,
   FaKey,
   FaBars,
-  FaUserCircle
+  FaUserCircle,
+  FaUsers,
+  FaRegAddressBook
 } from 'react-icons/fa';
 import './Navbar.css';
 
@@ -16,6 +18,7 @@ function Navbar() {
   const { user, setUser } = useContext(UserContext);
   const [collapsed, setCollapsed] = useState(false);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [adminExpanded, setAdminExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const popupRef = useRef();
@@ -32,7 +35,6 @@ function Navbar() {
     { path: '/search', label: 'Search PIPs', icon: <FaSearch /> },
     { path: '/audit', label: 'Audit Trail', icon: <FaClipboardList /> },
     { path: '/datacapturer', label: 'Data Capturer', icon: <FaDatabase /> },
-    { path: '/administrator', label: 'Administrator', icon: <FaKey /> },
   ];
 
   useEffect(() => {
@@ -66,12 +68,42 @@ function Navbar() {
             key={path}
             className={`menu-item ${location.pathname === path ? 'active' : ''}`}
             onClick={() => navigate(path)}
-            title={collapsed ? label : ''}  // Tooltip on hover when collapsed
+            title={collapsed ? label : ''}
           >
             <span className="menu-icon">{icon}</span>
             {!collapsed && <span className="menu-label">{label}</span>}
           </div>
         ))}
+
+        {/* Administrator dropdown */}
+        <div
+          className={`menu-item ${location.pathname.startsWith('/admin') ? 'active' : ''}`}
+          onClick={() => !collapsed && setAdminExpanded(!adminExpanded)}
+          title="Administrator"
+        >
+          <span className="menu-icon"><FaKey /></span>
+          {!collapsed && (
+            <span className="menu-label">Administrator</span>
+          )}
+        </div>
+
+        {/* Submenu */}
+        {adminExpanded && !collapsed && (
+          <div className="submenu">
+            <div
+              className={`submenu-item ${location.pathname === '/admin/users' ? 'active' : ''}`}
+              onClick={() => navigate('/admin/users')}
+            >
+              <FaUsers className="submenu-icon" /> Manage Users
+            </div>
+            <div
+              className={`submenu-item ${location.pathname === '/admin/pips' ? 'active' : ''}`}
+              onClick={() => navigate('/admin/pips')}
+            >
+              <FaRegAddressBook className="submenu-icon" /> Manage PIPS
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Collapsed profile icon */}
@@ -79,7 +111,7 @@ function Navbar() {
         <div
           className="collapsed-profile"
           onClick={() => setShowProfilePopup(!showProfilePopup)}
-          title={user.email}  // Tooltip on hover
+          title={user.email}
         >
           <FaUserCircle className="profile-icon" />
         </div>
@@ -93,7 +125,6 @@ function Navbar() {
         </div>
       )}
 
-      {/* Full footer when expanded */}
       {!collapsed && (
         <div className="sidebar-footer">
           <div className="user-email">{user.email}</div>
