@@ -25,8 +25,11 @@ function PIPs() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:5000/api/pipsdata/pipsfetch')
-      .then(res => {
+    fetch('http://localhost:5000/api/pipsdata/pipsfetch', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    }).then(res => {
         if (!res.ok) throw new Error('Failed to fetch PIPs');
         return res.json();
       })

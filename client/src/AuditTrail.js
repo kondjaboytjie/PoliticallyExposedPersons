@@ -16,7 +16,11 @@ function AuditTrail() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/audittrails/audittrailsfetch')
+    fetch('http://localhost:5000/api/audittrails/audittrailsfetch', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch audit logs');
         return res.json();
@@ -64,7 +68,7 @@ function AuditTrail() {
       Status: log.status,
       User: log.user_email || log.user_id || 'N/A',
       IP: log.ip_address,
-      Time: new Date(log.timestamp).toLocaleString(),
+      Time: new Date(log.timestamp).toLocaleString()
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Audit Logs');
@@ -94,6 +98,7 @@ function AuditTrail() {
 
   return (
     <div className="page-container">
+      <h2>Audit Trail</h2>
       <div className="table-controls">
         <input
           type="text"
@@ -138,7 +143,9 @@ function AuditTrail() {
               <th onClick={() => handleSort('status')}>Status</th>
               <th>User</th>
               <th>IP</th>
-              <th onClick={() => handleSort('timestamp')}>Time {sortColumn === 'timestamp' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}</th>
+              <th onClick={() => handleSort('timestamp')}>
+                Time {sortColumn === 'timestamp' ? (sortOrder === 'asc' ? '▲' : '▼') : ''}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -160,7 +167,9 @@ function AuditTrail() {
       </div>
 
       <div className="pagination">
-        <button onClick={() => setCurrentPage(prev => prev - 1)} disabled={currentPage === 1}>← Prev</button>
+        <button onClick={() => setCurrentPage(prev => prev - 1)} disabled={currentPage === 1}>
+          ← Prev
+        </button>
         {[...Array(totalPages)].map((_, idx) => (
           <button
             key={idx}
@@ -170,7 +179,9 @@ function AuditTrail() {
             {idx + 1}
           </button>
         ))}
-        <button onClick={() => setCurrentPage(prev => prev + 1)} disabled={currentPage === totalPages}>Next →</button>
+        <button onClick={() => setCurrentPage(prev => prev + 1)} disabled={currentPage === totalPages}>
+          Next →
+        </button>
       </div>
     </div>
   );

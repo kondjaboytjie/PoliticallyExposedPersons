@@ -6,6 +6,10 @@ require('dotenv').config();
 app.use(cors());
 app.use(express.json());
 
+
+const authenticateToken = require('./middleware/authMiddleware');
+app.use(authenticateToken);
+
 // Routes
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
