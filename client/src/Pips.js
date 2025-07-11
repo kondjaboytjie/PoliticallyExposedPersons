@@ -8,6 +8,7 @@ import './Pages.css';
 
 function PIPs() {
   const [pips, setPips] = useState([]);
+  const [allPips, setAllPips] = useState([]); // raw data store
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,28 +19,30 @@ function PIPs() {
 
   const location = useLocation();
   const queryParam = new URLSearchParams(location.search).get('query');
-  const query = queryParam?.toLowerCase() || '';
+  const initialQuery = queryParam?.toLowerCase() || '';
 
-  useEffect(() => {
-    setSearchTerm(query);
-  }, [query]);
+  // Build full name of associate
+  const getAssociateName = (assoc) =>
+    [assoc.first_name, assoc.middle_name, assoc.last_name].filter(Boolean).join(' ');
 
+  // Initial load: fetch all data
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:5000/api/pipsdata/pipsfetch?query=${query}`)
+    fetch('http://localhost:5000/api/pipsdata/pipsfetch')
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch PIPs');
         return res.json();
       })
       .then(data => {
-        setPips(data);
+        setAllPips(data);
+        setSearchTerm(initialQuery); // set initial search
         setLoading(false);
       })
       .catch(err => {
         setError(err.message);
         setLoading(false);
       });
-  }, [query]);
+  }, [initialQuery]);
 
   const handleSort = (col) => {
     const order = sortColumn === col && sortOrder === 'asc' ? 'desc' : 'asc';
@@ -47,23 +50,24 @@ function PIPs() {
     setSortOrder(order);
   };
 
+  // Filter pips client-side based on current input
   const filtered = searchTerm
-    ? pips.filter(pip => {
+    ? allPips.filter(pip => {
         const term = searchTerm.toLowerCase();
         return (
-          pip.full_name.toLowerCase().includes(term) ||
+          (pip.full_name && pip.full_name.toLowerCase().includes(term)) ||
           (pip.national_id && pip.national_id.includes(term)) ||
           pip.associates.some(assoc =>
-            assoc.associate_name.toLowerCase().includes(term) ||
+            getAssociateName(assoc).toLowerCase().includes(term) ||
             (assoc.national_id && assoc.national_id.includes(term))
           )
         );
       })
-    : pips;
+    : allPips;
 
   const sorted = filtered.sort((a, b) => {
-    const valA = a[sortColumn] || '';
-    const valB = b[sortColumn] || '';
+    const valA = (a[sortColumn] || '').toString().toLowerCase();
+    const valB = (b[sortColumn] || '').toString().toLowerCase();
     if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
     if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
     return 0;
@@ -74,7 +78,7 @@ function PIPs() {
 
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(
-      pips.flatMap(p => [
+      allPips.flatMap(p => [
         {
           'Full Name': p.full_name,
           'National ID': p.national_id,
@@ -91,9 +95,9 @@ function PIPs() {
           'Type': '',
           'Reason': '',
           'Country': '',
-          'Associate Name': a.associate_name,
+          'Associate Name': getAssociateName(a),
           'Relationship': a.relationship_type,
-          'Associate National ID': a.national_id
+          'Associate National ID': a.national_id || 'N/A'
         }))
       ])
     );
@@ -106,7 +110,7 @@ function PIPs() {
     const doc = new jsPDF();
     autoTable(doc, {
       head: [['Full Name', 'National ID', 'Type', 'Reason', 'Country', 'Associate Name', 'Relationship', 'Associate National ID']],
-      body: pips.flatMap(p => [
+      body: allPips.flatMap(p => [
         [
           p.full_name,
           p.national_id || 'N/A',
@@ -117,7 +121,7 @@ function PIPs() {
         ],
         ...p.associates.map(a => [
           '', '', '', '', '',
-          a.associate_name,
+          getAssociateName(a),
           a.relationship_type,
           a.national_id || 'N/A'
         ])
@@ -136,10 +140,13 @@ function PIPs() {
           type="text"
           placeholder="Search by name or ID..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
         />
         <CSVLink
-          data={pips.flatMap(p => [
+          data={allPips.flatMap(p => [
             {
               full_name: p.full_name,
               national_id: p.national_id,
@@ -156,7 +163,7 @@ function PIPs() {
               pip_type: '',
               reason: '',
               country: '',
-              associate_name: a.associate_name,
+              associate_name: getAssociateName(a),
               relationship_type: a.relationship_type,
               associate_id: a.national_id || 'N/A'
             }))
@@ -208,14 +215,14 @@ function PIPs() {
                   <td></td>
                 </tr>
                 {pip.associates.map((assoc) => (
-                  <tr className="associate-row" key={assoc.id}>
+                  <tr className="associate-row" key={assoc.id || `${assoc.first_name}-${assoc.last_name}`}>
                     <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
                     <td></td>
-                    <td>{assoc.associate_name}</td>
+                    <td>{getAssociateName(assoc)}</td>
                     <td>{assoc.relationship_type}</td>
                     <td>{assoc.national_id || 'N/A'}</td>
                   </tr>

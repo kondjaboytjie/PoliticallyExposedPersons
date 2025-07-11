@@ -32,37 +32,59 @@ const countries = [
 
 function DataCapturer() {
   const [pipType, setPipType] = useState(null);
-  const [fullName, setFullName] = useState('');
+
+  // Separate name fields
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const [nationalId, setNationalId] = useState('');
   const [reason, setReason] = useState('');
-  const [associates, setAssociates] = useState([{ associate_name: '', relationship_type: '', national_id: '' }]);
-  const [foreignDetails, setForeignDetails] = useState({ country: '', additional_notes: '', national_id: '' });
+
+  const [associates, setAssociates] = useState([{ first_name: '', middle_name: '', last_name: '', relationship_type: '', national_id: '' }]);
+  const [institutions, setInstitutions] = useState([{ institution_name: '', institution_type: '', position: '', start_date: '', end_date: '' }]);
+
+  const [foreignDetails, setForeignDetails] = useState({ country: '', additional_notes: '' });
   const [suggestions, setSuggestions] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [showMessagePopup, setShowMessagePopup] = useState(false);
 
+  // Add associate row
   const addAssociate = () => {
-    setAssociates([...associates, { associate_name: '', relationship_type: '', national_id: '' }]);
+    setAssociates([...associates, { first_name: '', middle_name: '', last_name: '', relationship_type: '', national_id: '' }]);
   };
 
+  // Add institution row
+  const addInstitution = () => {
+    setInstitutions([...institutions, { institution_name: '', institution_type: '', position: '', start_date: '', end_date: '' }]);
+  };
+
+  // Handle associate field change
   const handleAssociateChange = (index, field, value) => {
     const updated = [...associates];
     updated[index][field] = value;
     setAssociates(updated);
   };
 
+  // Handle institution field change
+  const handleInstitutionChange = (index, field, value) => {
+    const updated = [...institutions];
+    updated[index][field] = value;
+    setInstitutions(updated);
+  };
+
+  // Handle national ID input restriction for local PIP
   const handleNationalIdChange = (e) => {
     if (pipType === 'Local') {
-      // Local: only digits, max 11 chars
       const digits = e.target.value.replace(/\D/g, '');
       setNationalId(digits.slice(0, 11));
     } else {
-      // Foreign: no restriction on national ID input
       setNationalId(e.target.value);
     }
   };
 
+  // Country autocomplete handling unchanged
   const handleCountryChange = (e) => {
     const val = e.target.value;
     setForeignDetails({ ...foreignDetails, country: val });
@@ -81,12 +103,16 @@ function DataCapturer() {
     setSuggestions([]);
   };
 
+  // Reset form
   const resetForm = () => {
-    setFullName('');
+    setFirstName('');
+    setMiddleName('');
+    setLastName('');
     setNationalId('');
     setReason('');
-    setAssociates([{ associate_name: '', relationship_type: '', national_id: '' }]);
-    setForeignDetails({ country: '', additional_notes: '', national_id: '' });
+    setAssociates([{ first_name: '', middle_name: '', last_name: '', relationship_type: '', national_id: '' }]);
+    setInstitutions([{ institution_name: '', institution_type: '', position: '', start_date: '', end_date: '' }]);
+    setForeignDetails({ country: '', additional_notes: '' });
     setPipType(null);
   };
 
@@ -95,19 +121,18 @@ function DataCapturer() {
     setMessage('');
   };
 
+  // Form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setShowMessagePopup(false);
 
-    // Validate local national ID length & digits only
     if (pipType === 'Local' && nationalId.length !== 11) {
       setMessage('❌ National ID must be exactly 11 digits for local PIP');
       setShowMessagePopup(true);
       return;
     }
 
-    // Validate foreign country
     if (pipType === 'Foreign' && !countries.includes(foreignDetails.country)) {
       setMessage('❌ Please select a valid country from the list');
       setShowMessagePopup(true);
@@ -116,20 +141,25 @@ function DataCapturer() {
 
     setSubmitting(true);
 
-    const filteredAssociates = associates.filter(
-      (a) =>
-        a.associate_name.trim() !== '' ||
-        a.relationship_type.trim() !== '' ||
-        a.national_id.trim() !== ''
+    // Filter associates: only include if at least one field is non-empty
+    const filteredAssociates = associates.filter(a =>
+      a.first_name.trim() !== '' || a.middle_name.trim() !== '' || a.last_name.trim() !== '' ||
+      a.relationship_type.trim() !== '' || a.national_id.trim() !== ''
     );
 
+    // Filter institutions: only include if institution_name is non-empty
+    const filteredInstitutions = institutions.filter(i => i.institution_name.trim() !== '');
+
     const pipData = {
-      full_name: fullName,
+      first_name: firstName,
+      middle_name: middleName,
+      last_name: lastName,
       national_id: nationalId,
       pip_type: pipType,
       reason,
       is_foreign: pipType === 'Foreign',
       associates: filteredAssociates,
+      institutions: filteredInstitutions,
       foreign: pipType === 'Foreign' ? foreignDetails : null
     };
 
@@ -180,13 +210,27 @@ function DataCapturer() {
         <form className="table-container" onSubmit={handleSubmit} style={{ position: 'relative' }}>
           <h3>{pipType} PIP Information</h3>
 
-          <div className="form-group">
+          <div className="form-group name-group">
             <input
-              placeholder="Full Name"
-              value={fullName}
+              placeholder="First Name"
+              value={firstName}
               required
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={e => setFirstName(e.target.value)}
             />
+            <input
+              placeholder="Middle Name"
+              value={middleName}
+              onChange={e => setMiddleName(e.target.value)}
+            />
+            <input
+              placeholder="Last Name"
+              value={lastName}
+              required
+              onChange={e => setLastName(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
             <input
               placeholder="National ID"
               value={nationalId}
@@ -200,7 +244,7 @@ function DataCapturer() {
               placeholder="Reason"
               value={reason}
               required
-              onChange={(e) => setReason(e.target.value)}
+              onChange={e => setReason(e.target.value)}
             />
           </div>
 
@@ -223,37 +267,85 @@ function DataCapturer() {
               <textarea
                 placeholder="Additional Notes"
                 value={foreignDetails.additional_notes}
-                onChange={(e) =>
+                onChange={e =>
                   setForeignDetails({ ...foreignDetails, additional_notes: e.target.value })
                 }
               />
             </div>
           )}
 
+           <h4 style={{ marginTop: '1rem' }}>PIP Institution Details</h4>
+          {institutions.map((inst, idx) => (
+            <div key={idx} className="form-group institution-group">
+              <input
+                placeholder="Institution Name"
+                value={inst.institution_name}
+                required={idx === 0} // require first row institution name
+                onChange={e => handleInstitutionChange(idx, 'institution_name', e.target.value)}
+              />
+              <input
+                placeholder="Institution Type"
+                value={inst.institution_type}
+                onChange={e => handleInstitutionChange(idx, 'institution_type', e.target.value)}
+              />
+              <input
+                placeholder="Position"
+                value={inst.position}
+                onChange={e => handleInstitutionChange(idx, 'position', e.target.value)}
+              />
+              <input
+                type="date"
+                placeholder="Start Date"
+                value={inst.start_date}
+                onChange={e => handleInstitutionChange(idx, 'start_date', e.target.value)}
+              />
+              <input
+                type="date"
+                placeholder="End Date"
+                value={inst.end_date}
+                onChange={e => handleInstitutionChange(idx, 'end_date', e.target.value)}
+              />
+            </div>
+          ))}
+          <button type="button" className="export-button" onClick={addInstitution}>
+            + Add Another Institution
+          </button>
+
           <h4 style={{ marginTop: '1rem' }}>Associates</h4>
           {associates.map((assoc, idx) => (
-            <div key={idx} className="form-group">
+            <div key={idx} className="form-group name-group">
               <input
-                placeholder="Associate Name"
-                value={assoc.associate_name}
-                onChange={(e) => handleAssociateChange(idx, 'associate_name', e.target.value)}
+                placeholder="First Name"
+                value={assoc.first_name}
+                onChange={e => handleAssociateChange(idx, 'first_name', e.target.value)}
+              />
+              <input
+                placeholder="Middle Name"
+                value={assoc.middle_name}
+                onChange={e => handleAssociateChange(idx, 'middle_name', e.target.value)}
+              />
+              <input
+                placeholder="Last Name"
+                value={assoc.last_name}
+                onChange={e => handleAssociateChange(idx, 'last_name', e.target.value)}
               />
               <input
                 placeholder="Relationship Type"
                 value={assoc.relationship_type}
-                onChange={(e) => handleAssociateChange(idx, 'relationship_type', e.target.value)}
+                onChange={e => handleAssociateChange(idx, 'relationship_type', e.target.value)}
               />
               <input
                 placeholder="Associate National ID"
                 value={assoc.national_id}
-                onChange={(e) => handleAssociateChange(idx, 'national_id', e.target.value)}
+                onChange={e => handleAssociateChange(idx, 'national_id', e.target.value)}
               />
             </div>
           ))}
-
           <button type="button" className="export-button" onClick={addAssociate}>
             + Add Another Associate
           </button>
+
+         
 
           <div style={{ marginTop: '2rem' }}>
             <button type="submit" className="export-button" disabled={submitting}>
@@ -269,7 +361,6 @@ function DataCapturer() {
             </button>
           </div>
 
-          {/* Popup Message */}
           {showMessagePopup && (
             <div className="message-popup">
               <div className="message-popup-content">
