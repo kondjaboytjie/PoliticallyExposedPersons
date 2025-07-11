@@ -10,6 +10,8 @@ function ManageUsers() {
   const [sortColumn, setSortColumn] = useState('first_name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [showForm, setShowForm] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -79,47 +81,11 @@ function ManageUsers() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const result = await res.json();
-
       if (!res.ok) throw new Error(result.error || 'Failed to update status');
 
       setMessage(`✅ User ${isActive ? 'deactivated' : 'activated'} successfully`);
       setShowMessagePopup(true);
       fetchUsers();
-    } catch (err) {
-      setMessage('❌ ' + err.message);
-      setShowMessagePopup(true);
-    }
-  };
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    setShowMessagePopup(false);
-
-    if (formData.roles.length === 0) {
-      setMessage('❌ Please select at least one role');
-      setShowMessagePopup(true);
-      return;
-    }
-
-    try {
-      const res = await fetch('http://localhost:5000/api/users/useradd', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Failed to create user');
-
-      setMessage('✅ User added successfully');
-      setShowMessagePopup(true);
-      setFormData({ first_name: '', last_name: '', email: '', password: '', roles: [] });
-      fetchUsers();
-      setShowForm(false);
     } catch (err) {
       setMessage('❌ ' + err.message);
       setShowMessagePopup(true);
@@ -135,6 +101,62 @@ function ManageUsers() {
     });
   };
 
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setShowMessagePopup(false);
+
+    if (formData.roles.length === 0) {
+      setMessage('❌ Please select at least one role');
+      setShowMessagePopup(true);
+      return;
+    }
+
+    try {
+      const url = editMode
+        ? `http://localhost:5000/api/users/userupdate/${editId}`
+        : 'http://localhost:5000/api/users/useradd';
+
+      const method = editMode ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to save user');
+
+      setMessage(editMode ? '✅ User updated successfully' : '✅ User added successfully');
+      setShowMessagePopup(true);
+      setFormData({ first_name: '', last_name: '', email: '', password: '', roles: [] });
+      setEditMode(false);
+      setEditId(null);
+      fetchUsers();
+      setShowForm(false);
+    } catch (err) {
+      setMessage('❌ ' + err.message);
+      setShowMessagePopup(true);
+    }
+  };
+
+  const handleEdit = (user) => {
+    setFormData({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      password: '',
+      roles: user.roles || []
+    });
+    setEditMode(true);
+    setEditId(user.id);
+    setShowForm(true);
+  };
+
   return (
     <div className="page-container">
       <div className="table-controls">
@@ -148,7 +170,12 @@ function ManageUsers() {
           }}
         />
         <div className="button-group">
-          <button className="export-button" onClick={() => setShowForm(!showForm)}>
+          <button className="export-button" onClick={() => {
+            setShowForm(true);
+            setEditMode(false);
+            setEditId(null);
+            setFormData({ first_name: '', last_name: '', email: '', password: '', roles: [] });
+          }}>
             <FaPlus style={{ marginRight: 5 }} />
             Add User
           </button>
@@ -157,7 +184,7 @@ function ManageUsers() {
 
       {showForm && (
         <form className="table-container" onSubmit={handleFormSubmit}>
-          <h3>Add New User</h3>
+          <h3>{editMode ? 'Edit User' : 'Add New User'}</h3>
           <div className="form-group name-group">
             <input
               type="text"
@@ -179,15 +206,16 @@ function ManageUsers() {
               required
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
+              disabled={editMode}
             />
           </div>
           <div className="form-group">
             <input
               type="password"
               placeholder="Password"
-              required
               value={formData.password}
               onChange={e => setFormData({ ...formData, password: e.target.value })}
+              required={!editMode}
             />
           </div>
 
@@ -206,13 +234,17 @@ function ManageUsers() {
             </div>
           </div>
 
-          <button type="submit" className="export-button">Submit</button>
+          <button type="submit" className="export-button">
+            {editMode ? 'Update' : 'Submit'}
+          </button>
           <button
             type="button"
             className="export-button"
             style={{ marginLeft: '1rem', background: '#ccc' }}
             onClick={() => {
               setFormData({ first_name: '', last_name: '', email: '', password: '', roles: [] });
+              setEditMode(false);
+              setEditId(null);
               setShowForm(false);
             }}
           >
@@ -253,7 +285,9 @@ function ManageUsers() {
                 <td>{user.roles?.join(', ') || '-'}</td>
                 <td>{user.is_active ? 'Active' : 'Inactive'}</td>
                 <td>
-                  <button className="action-button" title="Edit"><FaEdit /></button>
+                  <button className="action-button" title="Edit" onClick={() => handleEdit(user)}>
+                    <FaEdit />
+                  </button>
                   <button
                     className="action-button"
                     title={user.is_active ? 'Disable' : 'Enable'}

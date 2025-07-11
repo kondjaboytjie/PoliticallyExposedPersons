@@ -29,11 +29,18 @@ router.post('/login', async (req, res) => {
 
   try {
     const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const user = result.rows[0];
+
+    // ❌ Deny login if user is inactive
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'Your account is inactive. Contact an administrator.' });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });

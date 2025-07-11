@@ -7,10 +7,11 @@ import './Login.css';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const { user, setUser } = useContext(UserContext);
   const navigate = useNavigate();
 
-  //Redirect if already logged in
+  // Redirect if already logged in
   useEffect(() => {
     if (user) {
       navigate('/search');
@@ -19,6 +20,8 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+
     try {
       const res = await axios.post('http://localhost:5000/api/auth/login', {
         email,
@@ -33,7 +36,14 @@ function Login() {
 
       navigate('/search');
     } catch (err) {
-      alert('Login failed: ' + (err.response?.data || err.message));
+      const error = err.response?.data?.error || 'Server error. Please try again.';
+      if (error.includes('inactive')) {
+        setErrorMsg('❌ Your account is disabled. Contact an administrator.');
+      } else if (error.includes('Invalid credentials')) {
+        setErrorMsg('❌ Invalid email or password.');
+      } else {
+        setErrorMsg('❌ ' + error);
+      }
     }
   };
 
@@ -56,6 +66,8 @@ function Login() {
           required
         />
         <button type="submit">Login</button>
+
+        {errorMsg && <div className="login-error">{errorMsg}</div>}
       </form>
     </div>
   );

@@ -5,7 +5,7 @@ const logAuditTrail = require('../utils/logAuditTrail');
 
 // GET users with roles
 router.get('/usersfetch', async (req, res) => {
-  const user = req.user || {}; // may be empty if unauthenticated
+  const user = req.user || {};
 
   try {
     const result = await pool.query(`
@@ -24,7 +24,6 @@ router.get('/usersfetch', async (req, res) => {
       ORDER BY u.id DESC
     `);
 
-    // Only log if user.id is present (avoid audit trail FK errors)
     if (user.id) {
       await logAuditTrail({
         req,
@@ -56,10 +55,10 @@ router.get('/usersfetch', async (req, res) => {
   }
 });
 
-// POST add user
+// POST create user
 router.post('/useradd', async (req, res) => {
   const { first_name, last_name, email, password, roles } = req.body;
-  const user = req.user || {}; // Authenticated user performing the action (optional)
+  const user = req.user || {};
   const roleNames = Array.isArray(roles) ? roles : [];
 
   const client = await pool.connect();
@@ -81,19 +80,16 @@ router.post('/useradd', async (req, res) => {
         [roleName]
       );
       if (roleResult.rows.length > 0) {
-        const roleId = roleResult.rows[0].id;
         await client.query(
           `INSERT INTO user_roles (user_id, role_id)
-           VALUES ($1, $2)
-           ON CONFLICT DO NOTHING`,
-          [userId, roleId]
+           VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [userId, roleResult.rows[0].id]
         );
       }
     }
 
     await client.query('COMMIT');
 
-    // ✅ Log successful creation
     if (user.id) {
       await logAuditTrail({
         req,
@@ -102,16 +98,14 @@ router.post('/useradd', async (req, res) => {
         module_name: 'Users',
         target: `${first_name} ${last_name}`,
         result_summary: `User created with roles: ${roleNames.join(', ')}`,
-        status: 'success'
+        status: 'success',
       });
     }
 
     res.json({ message: 'User added successfully', user: insertUser.rows[0] });
-
   } catch (err) {
     await client.query('ROLLBACK');
 
-    // ✅ Duplicate email check
     if (err.code === '23505' && err.constraint === 'users_email_key') {
       if (user.id) {
         await logAuditTrail({
@@ -120,14 +114,13 @@ router.post('/useradd', async (req, res) => {
           action_type: 'Create',
           module_name: 'Users',
           target: email,
-          result_summary: 'Attempted to create user with duplicate email',
-          status: 'error'
+          result_summary: 'Duplicate email error',
+          status: 'error',
         });
       }
       return res.status(400).json({ error: 'Email already exists' });
     }
 
-    // ✅ Log generic failure
     if (user.id) {
       await logAuditTrail({
         req,
@@ -136,7 +129,7 @@ router.post('/useradd', async (req, res) => {
         module_name: 'Users',
         target: email,
         result_summary: err.message,
-        status: 'error'
+        status: 'error',
       });
     }
 
@@ -147,9 +140,86 @@ router.post('/useradd', async (req, res) => {
   }
 });
 
+// PUT update user and roles
+router.put('/userupdate/:id', async (req, res) => {
+  const { id } = req.params;
+  const { first_name, last_name, email, password, roles } = req.body;
+  const user = req.user || {};
+  const roleNames = Array.isArray(roles) ? roles : [];
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `UPDATE users
+       SET first_name = $1, last_name = $2, email = $3, password = $4
+       WHERE id = $5`,
+      [first_name, last_name, email, password, id]
+    );
+
+    await client.query(
+      `UPDATE user_roles SET is_active = FALSE WHERE user_id = $1`,
+      [id]
+    );
+
+    for (const roleName of roleNames) {
+      const roleResult = await client.query(
+        `SELECT id FROM roles WHERE name = $1 AND is_active = TRUE`,
+        [roleName]
+      );
+      if (roleResult.rows.length > 0) {
+        const roleId = roleResult.rows[0].id;
+        await client.query(
+          `INSERT INTO user_roles (user_id, role_id, is_active)
+           VALUES ($1, $2, TRUE)
+           ON CONFLICT (user_id, role_id) DO UPDATE SET is_active = TRUE`,
+          [id, roleId]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Update',
+        module_name: 'Users',
+        target: `${first_name} ${last_name}`,
+        result_summary: `User updated with roles: ${roleNames.join(', ')}`,
+        status: 'success',
+      });
+    }
+
+    res.json({ message: 'User updated successfully' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+
+    console.error('Error updating user:', err);
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Update',
+        module_name: 'Users',
+        target: id,
+        result_summary: err.message,
+        status: 'error',
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to update user' });
+  } finally {
+    client.release();
+  }
+});
+
+// PATCH toggle status
 router.patch('/toggle-status/:id', async (req, res) => {
   const { id } = req.params;
-  const user = req.user || {}; // The authenticated user performing the action
+  const user = req.user || {};
 
   try {
     const toggle = await pool.query(
@@ -161,17 +231,6 @@ router.patch('/toggle-status/:id', async (req, res) => {
     );
 
     if (toggle.rows.length === 0) {
-      if (user.id) {
-        await logAuditTrail({
-          req,
-          user_id: user.id,
-          action_type: 'Update',
-          module_name: 'Users',
-          target: `User ID ${id}`,
-          result_summary: 'User not found for toggle',
-          status: 'error'
-        });
-      }
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -186,47 +245,32 @@ router.patch('/toggle-status/:id', async (req, res) => {
         module_name: 'Users',
         target: `${updatedUser.first_name} ${updatedUser.last_name}`,
         result_summary: `User status changed to ${newStatus}`,
-        status: 'success'
+        status: 'success',
       });
     }
 
     res.json({ message: `User is now ${newStatus}` });
   } catch (err) {
     console.error('Error toggling user status:', err);
-
-    if (user.id) {
-      await logAuditTrail({
-        req,
-        user_id: user.id,
-        action_type: 'Update',
-        module_name: 'Users',
-        target: `User ID ${id}`,
-        result_summary: err.message,
-        status: 'error'
-      });
-    }
-
     res.status(500).json({ error: 'Failed to update user status' });
   }
 });
 
-// disable user
-// SOFT DELETE user (sets is_active = false)
-router.delete('/userdelete:id', async (req, res) => {
-  const userId = req.params.id;
+// DELETE (soft delete)
+router.delete('/userdelete/:id', async (req, res) => {
+  const { id } = req.params;
   const user = req.user || {};
 
   try {
     const result = await pool.query(
-      'UPDATE users SET is_active = FALSE WHERE id = $1 RETURNING id, email',
-      [userId]
+      'UPDATE users SET is_active = FALSE WHERE id = $1 RETURNING email',
+      [id]
     );
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Audit log
     if (user.id) {
       await logAuditTrail({
         req,
@@ -235,42 +279,28 @@ router.delete('/userdelete:id', async (req, res) => {
         module_name: 'Users',
         target: result.rows[0].email,
         result_summary: 'User marked as inactive',
-        status: 'success'
+        status: 'success',
       });
     }
 
     res.json({ message: 'User marked as inactive' });
   } catch (err) {
     console.error('Error disabling user:', err);
-
-    if (user.id) {
-      await logAuditTrail({
-        req,
-        user_id: user.id,
-        action_type: 'Delete',
-        module_name: 'Users',
-        target: `User ID ${userId}`,
-        result_summary: err.message,
-        status: 'error'
-      });
-    }
-
     res.status(500).json({ error: 'Failed to disable user' });
   }
 });
 
-
-
-//fetchroles
+// GET roles
 router.get('/rolesfetch', async (req, res) => {
   try {
-    const result = await pool.query(`SELECT id, name FROM roles WHERE is_active = true ORDER BY name`);
+    const result = await pool.query(
+      `SELECT id, name FROM roles WHERE is_active = TRUE ORDER BY name`
+    );
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching roles:', err);
     res.status(500).json({ error: 'Failed to fetch roles' });
   }
 });
-
 
 module.exports = router;
