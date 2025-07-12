@@ -70,13 +70,56 @@ function ManageUsers() {
   const sorted = filtered.sort((a, b) => {
     const valA = (a[sortColumn] || '').toString().toLowerCase();
     const valB = (b[sortColumn] || '').toString().toLowerCase();
-    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
+    return valA < valB ? (sortOrder === 'asc' ? -1 : 1) : valA > valB ? (sortOrder === 'asc' ? 1 : -1) : 0;
   });
 
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
   const currentUsers = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const renderPagination = () => {
+    const pages = [];
+    const total = totalPages;
+    const current = currentPage;
+
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(
+          <button key={i} className={current === i ? 'active' : ''} onClick={() => setCurrentPage(i)}>
+            {i}
+          </button>
+        );
+      }
+    } else {
+      pages.push(
+        <button key={1} className={current === 1 ? 'active' : ''} onClick={() => setCurrentPage(1)}>
+          1
+        </button>
+      );
+
+      if (current > 3) pages.push(<span key="start-ellipsis">...</span>);
+
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(
+          <button key={i} className={current === i ? 'active' : ''} onClick={() => setCurrentPage(i)}>
+            {i}
+          </button>
+        );
+      }
+
+      if (current < total - 2) pages.push(<span key="end-ellipsis">...</span>);
+
+      pages.push(
+        <button key={total} className={current === total ? 'active' : ''} onClick={() => setCurrentPage(total)}>
+          {total}
+        </button>
+      );
+    }
+
+    return pages;
+  };
 
   const toggleUserStatus = async (id, isActive) => {
     const action = isActive ? 'deactivate' : 'activate';
@@ -226,7 +269,6 @@ function ManageUsers() {
       {showForm && (
         <form className="table-container" onSubmit={handleFormSubmit}>
           <h3>{editMode ? 'Edit User' : 'Add New User'}</h3>
-
           <div className="form-group name-group">
             <input
               placeholder="First Name"
@@ -263,18 +305,15 @@ function ManageUsers() {
           <div className="form-group">
             <label>Assign Roles:</label>
             <div className="multi-select">
-           {roles
-  .filter(r => r.is_active) // ✅ only active roles
-  .map(r => (
-    <div
-      key={r.id}
-      className={`role-chip ${formData.roles.includes(r.name) ? 'selected' : ''}`}
-      onClick={() => toggleRole(r.name)}
-    >
-      {r.name}
-    </div>
-))}
-
+              {roles.filter(r => r.is_active).map(r => (
+                <div
+                  key={r.id}
+                  className={`role-chip ${formData.roles.includes(r.name) ? 'selected' : ''}`}
+                  onClick={() => toggleRole(r.name)}
+                >
+                  {r.name}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -293,6 +332,10 @@ function ManageUsers() {
           </div>
         </div>
       )}
+
+      <div style={{ marginBottom: '1rem', fontWeight: 'bold', fontSize: '1rem' }}>
+        Showing {currentUsers.length} of {filtered.length} users {searchTerm ? `(filtered from ${users.length})` : ''}
+      </div>
 
       <div className="table-container">
         <table className="pips-table">
@@ -334,15 +377,7 @@ function ManageUsers() {
 
       <div className="pagination">
         <button onClick={() => setCurrentPage(c => c - 1)} disabled={currentPage === 1}>← Prev</button>
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i}
-            className={currentPage === i + 1 ? 'active' : ''}
-            onClick={() => setCurrentPage(i + 1)}
-          >
-            {i + 1}
-          </button>
-        ))}
+        {renderPagination()}
         <button onClick={() => setCurrentPage(c => c + 1)} disabled={currentPage === totalPages}>Next →</button>
       </div>
     </div>

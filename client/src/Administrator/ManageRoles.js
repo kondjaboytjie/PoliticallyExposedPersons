@@ -14,19 +14,10 @@ export default function ManageRoles() {
   const [roleDesc, setRoleDesc] = useState('');
   const [msg, setMsg] = useState('');
   const [showMsg, setShowMsg] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/api/users/rolesfetch', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await res.json();
-        setRoles(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error('Error fetching roles:', e);
-      }
-    };
     fetchRoles();
   }, []);
 
@@ -106,13 +97,60 @@ export default function ManageRoles() {
     setShowForm(true);
   };
 
-  const list = search
+  const filteredList = search
     ? roles.filter(r => r.name.toLowerCase().includes(search.toLowerCase()))
     : roles;
 
-  // Export handlers
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const renderPagination = () => {
+    const pages = [];
+    const total = totalPages;
+    const current = currentPage;
+
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(
+          <button key={i} className={current === i ? 'active' : ''} onClick={() => setCurrentPage(i)}>
+            {i}
+          </button>
+        );
+      }
+    } else {
+      pages.push(
+        <button key={1} className={current === 1 ? 'active' : ''} onClick={() => setCurrentPage(1)}>
+          1
+        </button>
+      );
+
+      if (current > 3) pages.push(<span key="start-ellipsis">...</span>);
+
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(
+          <button key={i} className={current === i ? 'active' : ''} onClick={() => setCurrentPage(i)}>
+            {i}
+          </button>
+        );
+      }
+
+      if (current < total - 2) pages.push(<span key="end-ellipsis">...</span>);
+
+      pages.push(
+        <button key={total} className={current === total ? 'active' : ''} onClick={() => setCurrentPage(total)}>
+          {total}
+        </button>
+      );
+    }
+
+    return pages;
+  };
+
   const handleExportCSV = () => {
-    const csvRows = [['#', 'Role', 'Description'], ...list.map((r, i) => [i + 1, r.name, r.description || '-'])];
+    const csvRows = [['#', 'Role', 'Description'], ...filteredList.map((r, i) => [i + 1, r.name, r.description || '-'])];
     const csv = csvRows.map(row => row.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -122,7 +160,7 @@ export default function ManageRoles() {
   };
 
   const handleExportExcel = () => {
-    const ws = utils.json_to_sheet(list.map((r, i) => ({
+    const ws = utils.json_to_sheet(filteredList.map((r, i) => ({
       '#': i + 1,
       Role: r.name,
       Description: r.description || '-'
@@ -135,7 +173,7 @@ export default function ManageRoles() {
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.text('Roles List', 14, 16);
-    const tableData = list.map((r, i) => [i + 1, r.name, r.description || '-']);
+    const tableData = filteredList.map((r, i) => [i + 1, r.name, r.description || '-']);
     autoTable(doc, {
       startY: 20,
       head: [['#', 'Role', 'Description']],
@@ -150,7 +188,10 @@ export default function ManageRoles() {
         <input
           placeholder="Search roles…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+          }}
         />
         <div className="button-group">
           <button className="export-button" onClick={() => { setShowForm(true); setEditRole(null); }}>
@@ -199,6 +240,10 @@ export default function ManageRoles() {
         </div>
       )}
 
+      <div style={{ marginBottom: '1rem', fontWeight: 'bold', fontSize: '1rem' }}>
+        Showing {paginatedList.length} of {filteredList.length} roles {search ? `(filtered from ${roles.length})` : ''}
+      </div>
+
       <div className="table-container">
         <table className="pips-table">
           <thead>
@@ -211,9 +256,9 @@ export default function ManageRoles() {
             </tr>
           </thead>
           <tbody>
-            {list.map((r, i) => (
+            {paginatedList.map((r, i) => (
               <tr key={r.id}>
-                <td>{i + 1}</td>
+                <td>{(currentPage - 1) * itemsPerPage + i + 1}</td>
                 <td>{r.name}</td>
                 <td>{r.description || '-'}</td>
                 <td>{r.is_active ? 'Active' : 'Inactive'}</td>
@@ -227,6 +272,16 @@ export default function ManageRoles() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="pagination">
+        <button onClick={() => setCurrentPage(prev => prev - 1)} disabled={currentPage === 1}>
+          ← Prev
+        </button>
+        {renderPagination()}
+        <button onClick={() => setCurrentPage(prev => prev + 1)} disabled={currentPage === totalPages}>
+          Next →
+        </button>
       </div>
     </div>
   );

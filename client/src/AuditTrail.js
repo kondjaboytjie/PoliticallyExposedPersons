@@ -96,6 +96,71 @@ function AuditTrail() {
   if (loading) return <div className="page-container">Loading Audit Logs...</div>;
   if (error) return <div className="page-container">Error: {error}</div>;
 
+  const renderPagination = () => {
+    const pages = [];
+    const total = totalPages;
+    const current = currentPage;
+
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) {
+        pages.push(
+          <button
+            key={i}
+            className={current === i ? 'active' : ''}
+            onClick={() => setCurrentPage(i)}
+          >
+            {i}
+          </button>
+        );
+      }
+    } else {
+      pages.push(
+        <button
+          key={1}
+          className={current === 1 ? 'active' : ''}
+          onClick={() => setCurrentPage(1)}
+        >
+          1
+        </button>
+      );
+
+      if (current > 3) {
+        pages.push(<span key="start-ellipsis">...</span>);
+      }
+
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(
+          <button
+            key={i}
+            className={current === i ? 'active' : ''}
+            onClick={() => setCurrentPage(i)}
+          >
+            {i}
+          </button>
+        );
+      }
+
+      if (current < total - 2) {
+        pages.push(<span key="end-ellipsis">...</span>);
+      }
+
+      pages.push(
+        <button
+          key={total}
+          className={current === total ? 'active' : ''}
+          onClick={() => setCurrentPage(total)}
+        >
+          {total}
+        </button>
+      );
+    }
+
+    return pages;
+  };
+
   return (
     <div className="page-container">
       <div className="table-controls">
@@ -128,6 +193,10 @@ function AuditTrail() {
           <button className="export-button" onClick={exportExcel}>Export Excel</button>
           <button className="export-button" onClick={exportPDF}>Export PDF</button>
         </div>
+      </div>
+
+      <div style={{ marginBottom: '1rem', fontWeight: 'bold', fontSize: '1rem' }}>
+        Showing {currentLogs.length} of {filtered.length} logs {searchTerm ? `(filtered from ${logs.length})` : ''}
       </div>
 
       <div className="table-container">
@@ -169,15 +238,7 @@ function AuditTrail() {
         <button onClick={() => setCurrentPage(prev => prev - 1)} disabled={currentPage === 1}>
           ← Prev
         </button>
-        {[...Array(totalPages)].map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentPage(idx + 1)}
-            className={currentPage === idx + 1 ? 'active' : ''}
-          >
-            {idx + 1}
-          </button>
-        ))}
+        {renderPagination()}
         <button onClick={() => setCurrentPage(prev => prev + 1)} disabled={currentPage === totalPages}>
           Next →
         </button>

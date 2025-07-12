@@ -31,7 +31,7 @@ const countries = [
 ];
 
 function DataCapturer() {
-  const [pipType, setPipType] = useState(null);
+ const [pipType, setPipType] = useState('Local');
 
   // Separate name fields
   const [firstName, setFirstName] = useState('');

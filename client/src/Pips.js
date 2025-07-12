@@ -29,7 +29,8 @@ function PIPs() {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
-    }).then(res => {
+    })
+      .then(res => {
         if (!res.ok) throw new Error('Failed to fetch PIPs');
         return res.json();
       })
@@ -72,6 +73,50 @@ function PIPs() {
 
   const totalPages = Math.ceil(sorted.length / itemsPerPage);
   const currentPips = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const renderPagination = () => {
+    const pages = [];
+    const current = currentPage;
+
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(
+          <button key={i} className={current === i ? 'active' : ''} onClick={() => setCurrentPage(i)}>
+            {i}
+          </button>
+        );
+      }
+    } else {
+      pages.push(
+        <button key={1} className={current === 1 ? 'active' : ''} onClick={() => setCurrentPage(1)}>
+          1
+        </button>
+      );
+
+      if (current > 3) pages.push(<span key="start-ellipsis">...</span>);
+
+      const start = Math.max(2, current - 1);
+      const end = Math.min(totalPages - 1, current + 1);
+
+      for (let i = start; i <= end; i++) {
+        pages.push(
+          <button key={i} className={current === i ? 'active' : ''} onClick={() => setCurrentPage(i)}>
+            {i}
+          </button>
+        );
+      }
+
+      if (current < totalPages - 2) pages.push(<span key="end-ellipsis">...</span>);
+
+      pages.push(
+        <button key={totalPages} className={current === totalPages ? 'active' : ''} onClick={() => setCurrentPage(totalPages)}>
+          {totalPages}
+        </button>
+      );
+    }
+
+    return pages;
+  };
 
   const exportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(
@@ -176,6 +221,10 @@ function PIPs() {
         </div>
       </div>
 
+      <div style={{ marginBottom: '1rem', fontWeight: 'bold', fontSize: '1rem' }}>
+        Showing {currentPips.length} of {filtered.length} PIPs {searchTerm ? `(filtered from ${allPips.length})` : ''}
+      </div>
+
       <div className="table-container">
         <table className="pips-table">
           <thead>
@@ -226,17 +275,9 @@ function PIPs() {
       </div>
 
       <div className="pagination">
-        <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>← Prev</button>
-        {[...Array(totalPages)].map((_, idx) => (
-          <button
-            key={idx + 1}
-            onClick={() => setCurrentPage(idx + 1)}
-            className={currentPage === idx + 1 ? 'active' : ''}
-          >
-            {idx + 1}
-          </button>
-        ))}
-        <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next →</button>
+        <button onClick={() => setCurrentPage(c => c - 1)} disabled={currentPage === 1}>← Prev</button>
+        {renderPagination()}
+        <button onClick={() => setCurrentPage(c => c + 1)} disabled={currentPage === totalPages}>Next →</button>
       </div>
     </div>
   );
