@@ -292,15 +292,95 @@ router.delete('/userdelete/:id', async (req, res) => {
 
 // GET roles
 router.get('/rolesfetch', async (req, res) => {
+  const user = req.user || {};
+
   try {
     const result = await pool.query(
-      `SELECT id, name FROM roles WHERE is_active = TRUE ORDER BY name`
+      `SELECT id, name, description FROM roles WHERE is_active = TRUE ORDER BY name`
     );
+
+    // Audit: log success if user is authenticated
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Read',
+        module_name: 'Roles',
+        target: 'All Roles',
+        result_summary: `${result.rows.length} roles fetched`,
+        status: 'success',
+      });
+    }
+
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching roles:', err);
+
+    // Audit: log error if user is authenticated
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Read',
+        module_name: 'Roles',
+        target: 'All Roles',
+        result_summary: err.message,
+        status: 'error',
+      });
+    }
+
     res.status(500).json({ error: 'Failed to fetch roles' });
   }
 });
+
+// POST /api/users/roleadd
+router.post('/roleadd', async (req, res) => {
+  const { name, description } = req.body;
+  const user = req.user || {};
+
+  try {
+    await pool.query(
+      'INSERT INTO roles (name, description) VALUES ($1,$2)',
+      [name.trim(), description || null]
+    );
+
+    // Audit: success
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Create',
+        module_name: 'Roles',
+        target: name.trim(),
+        result_summary: 'New role created',
+        status: 'success',
+      });
+    }
+
+    res.json({ message: 'Role added' });
+  } catch (e) {
+    console.error(e);
+
+    // Audit: duplicate or DB error
+    if (user.id) {
+      await logAuditTrail({
+        req,
+        user_id: user.id,
+        action_type: 'Create',
+        module_name: 'Roles',
+        target: name.trim(),
+        result_summary: e.code === '23505' ? 'Duplicate role' : e.message,
+        status: 'error',
+      });
+    }
+
+    if (e.code === '23505') {
+      return res.status(400).json({ error: 'Role already exists' });
+    }
+
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 
 module.exports = router;

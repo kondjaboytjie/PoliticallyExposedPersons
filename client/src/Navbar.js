@@ -2,27 +2,21 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { UserContext } from './UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FaUser,
-  FaSearch,
-  FaClipboardList,
-  FaDatabase,
-  FaKey,
-  FaBars,
-  FaUserCircle,
-  FaUsers,
-  FaRegAddressBook
+  FaUser, FaSearch, FaClipboardList, FaDatabase,
+  FaKey, FaBars, FaUserCircle, FaUsers, FaRegAddressBook, FaUserShield
 } from 'react-icons/fa';
 import './Navbar.css';
 
 function Navbar() {
-  const { user, setUser } = useContext(UserContext);
-  const [collapsed, setCollapsed] = useState(false);
-  const [showProfilePopup, setShowProfilePopup] = useState(false);
-  const [adminExpanded, setAdminExpanded] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const popupRef = useRef();
+  const { user, setUser }           = useContext(UserContext);
+  const [collapsed, setCollapsed]   = useState(false);
+  const [showProfile, setShowProf]  = useState(false);
+  const [adminOpen, setAdminOpen]   = useState(false);
+  const navigate                    = useNavigate();
+  const location                    = useLocation();
+  const popupRef                    = useRef();
 
+  /* ─────────── logout ─────────── */
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -30,41 +24,42 @@ function Navbar() {
     navigate('/');
   };
 
-  const routes = [
-    { path: '/pips', label: 'PIPs', icon: <FaUser /> },
-    { path: '/search', label: 'Search PIPs', icon: <FaSearch /> },
-    { path: '/audit', label: 'Audit Trail', icon: <FaClipboardList /> },
-    { path: '/datacapturer', label: 'Data Capturer', icon: <FaDatabase /> },
+  /* ─────────── routes ─────────── */
+  const mainRoutes = [
+    { path: '/pips',          label: 'PIPs',         icon: <FaUser /> },
+    { path: '/search',        label: 'Search PIPs',  icon: <FaSearch /> },
+    { path: '/audit',         label: 'Audit Trail',  icon: <FaClipboardList /> },
+    { path: '/datacapturer',  label: 'Data Capturer',icon: <FaDatabase /> },
   ];
 
+  /* ─────────── outside-click for profile popup ─────────── */
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
-        setShowProfilePopup(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const clickOut = e => { if (popupRef.current && !popupRef.current.contains(e.target)) setShowProf(false); };
+    document.addEventListener('mousedown', clickOut);
+    return () => document.removeEventListener('mousedown', clickOut);
   }, []);
 
   if (!user) return null;
 
+  /* ─────────── render ─────────── */
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      {/* header */}
       <div className="sidebar-header">
         <div className="toggle-btn" onClick={() => setCollapsed(!collapsed)}>
           <FaBars />
         </div>
         {!collapsed && (
           <div className="page-title">
-            {routes.find(r => r.path === location.pathname)?.label ||
+            {mainRoutes.find(r => r.path === location.pathname)?.label ||
              (location.pathname.startsWith('/administrator') ? 'Administrator' : '')}
           </div>
         )}
       </div>
 
+      {/* main menu */}
       <div className="menu">
-        {routes.map(({ path, label, icon }) => (
+        {mainRoutes.map(({ path, label, icon }) => (
           <div
             key={path}
             className={`menu-item ${location.pathname === path ? 'active' : ''}`}
@@ -76,17 +71,18 @@ function Navbar() {
           </div>
         ))}
 
-        {/* Administrator dropdown */}
+        {/* administrator dropdown */}
         <div
           className={`menu-item ${location.pathname.startsWith('/administrator') ? 'active' : ''}`}
-          onClick={() => !collapsed && setAdminExpanded(!adminExpanded)}
+          onClick={() => !collapsed && setAdminOpen(!adminOpen)}
           title="Administrator"
         >
           <span className="menu-icon"><FaKey /></span>
           {!collapsed && <span className="menu-label">Administrator</span>}
         </div>
 
-        {adminExpanded && !collapsed && (
+        {/* sub-menu */}
+        {adminOpen && !collapsed && (
           <div className="submenu">
             <div
               className={`submenu-item ${location.pathname === '/administrator/manageusers' ? 'active' : ''}`}
@@ -100,27 +96,36 @@ function Navbar() {
             >
               <FaRegAddressBook className="submenu-icon" /> Manage PIPS
             </div>
+            <div
+              className={`submenu-item ${location.pathname === '/administrator/manageroles' ? 'active' : ''}`}
+              onClick={() => navigate('/administrator/manageroles')}
+            >
+              <FaUserShield className="submenu-icon" /> Manage Roles
+            </div>
           </div>
         )}
       </div>
 
+      {/* collapsed profile icon */}
       {collapsed && (
         <div
           className="collapsed-profile"
-          onClick={() => setShowProfilePopup(!showProfilePopup)}
+          onClick={() => setShowProf(!showProfile)}
           title={user.email}
         >
           <FaUserCircle className="profile-icon" />
         </div>
       )}
 
-      {collapsed && showProfilePopup && (
+      {/* profile pop-up */}
+      {collapsed && showProfile && (
         <div className="profile-popup" ref={popupRef}>
           <div className="user-email">{user.email}</div>
           <button onClick={handleLogout}>Logout</button>
         </div>
       )}
 
+      {/* footer */}
       {!collapsed && (
         <div className="sidebar-footer">
           <div className="user-email">{user.email}</div>
