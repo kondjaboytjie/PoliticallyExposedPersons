@@ -11,7 +11,9 @@ import DataCapturer  from './DataCapturer';
 
 import ManageUsers   from './Administrator/ManageUsers';
 import ManagePIPs    from './Administrator/ManagePips';
-import ManageRoles   from './Administrator/ManageRoles';   // NEW
+import ManageRoles   from './Administrator/ManageRoles';
+
+import PrivateRoute  from './PrivateRoute'; // ✅ import this
 
 function App() {
   return (
@@ -21,16 +23,65 @@ function App() {
           <Navbar />
           <div className="content-wrapper">
             <Routes>
-              <Route path="/"                                element={<Login />} />
-              <Route path="/search"                          element={<Search />} />
-              <Route path="/pips"                            element={<PIPs />} />
-              <Route path="/audit"                           element={<AuditTrail />} />
-              <Route path="/datacapturer"                    element={<DataCapturer />} />
-
-              {/* administrator sub-routes */}
-              <Route path="/administrator/manageusers"       element={<ManageUsers />} />
-              <Route path="/administrator/managepips"        element={<ManagePIPs />} />
-              <Route path="/administrator/manageroles"       element={<ManageRoles />} /> {/* NEW */}
+              <Route path="/" element={<Login />} />
+              
+              {/* ✅ Protected Routes */}
+              <Route
+                path="/search"
+                element={
+                  <PrivateRoute>
+                    <Search />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/pips"
+                element={
+                  <PrivateRoute>
+                    <PIPs />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/audit"
+                element={
+                  <PrivateRoute>
+                    <AuditTrail />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/datacapturer"
+                element={
+                  <PrivateRoute>
+                    <DataCapturer />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/administrator/manageusers"
+                element={
+                  <PrivateRoute>
+                    <ManageUsers />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/administrator/managepips"
+                element={
+                  <PrivateRoute>
+                    <ManagePIPs />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/administrator/manageroles"
+                element={
+                  <PrivateRoute>
+                    <ManageRoles />
+                  </PrivateRoute>
+                }
+              />
             </Routes>
           </div>
         </div>
