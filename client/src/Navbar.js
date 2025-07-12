@@ -3,7 +3,7 @@ import { UserContext } from './UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FaUser, FaSearch, FaClipboardList, FaDatabase,
-  FaKey, FaBars, FaUserCircle, FaUsers, FaRegAddressBook, FaUserShield
+  FaKey, FaBars, FaUserCircle, FaUsers, FaUserShield
 } from 'react-icons/fa';
 import './Navbar.css';
 
