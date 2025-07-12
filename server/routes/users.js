@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const logAuditTrail = require('../utils/logAuditTrail');
+const bcrypt = require('bcrypt');
 
 // GET users with roles
 router.get('/usersfetch', async (req, res) => {
@@ -65,11 +66,14 @@ router.post('/useradd', async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // 🔒 Hash password using bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const insertUser = await client.query(
       `INSERT INTO users (first_name, last_name, email, password)
        VALUES ($1, $2, $3, $4)
        RETURNING id, first_name, last_name, email, is_active, created_at`,
-      [first_name, last_name, email, password]
+      [first_name, last_name, email, hashedPassword]
     );
 
     const userId = insertUser.rows[0].id;
@@ -140,6 +144,7 @@ router.post('/useradd', async (req, res) => {
   }
 });
 
+
 // GET /api/users/rolesfetch — fetch all active roles
 router.get('/rolesfetch', async (req, res) => {
   const authUser = req.user || {};
@@ -191,11 +196,25 @@ router.put('/userupdate/:id', async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // Get existing user info
+    const existingUser = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+    if (existingUser.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let hashedPassword = existingUser.rows[0].password;
+
+    if (password && password.trim() !== '') {
+      // Hash new password
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
     await client.query(
       `UPDATE users
        SET first_name = $1, last_name = $2, email = $3, password = $4
        WHERE id = $5`,
-      [first_name, last_name, email, password, id]
+      [first_name, last_name, email, hashedPassword, id]
     );
 
     await client.query(
@@ -255,6 +274,7 @@ router.put('/userupdate/:id', async (req, res) => {
     client.release();
   }
 });
+
 
 // PATCH toggle status
 router.patch('/toggle-status/:id', async (req, res) => {
