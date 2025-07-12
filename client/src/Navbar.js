@@ -91,12 +91,6 @@ function Navbar() {
               <FaUsers className="submenu-icon" /> Manage Users
             </div>
             <div
-              className={`submenu-item ${location.pathname === '/administrator/managepips' ? 'active' : ''}`}
-              onClick={() => navigate('/administrator/managepips')}
-            >
-              <FaRegAddressBook className="submenu-icon" /> Manage PIPS
-            </div>
-            <div
               className={`submenu-item ${location.pathname === '/administrator/manageroles' ? 'active' : ''}`}
               onClick={() => navigate('/administrator/manageroles')}
             >

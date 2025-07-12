@@ -10,7 +10,6 @@ import AuditTrail    from './AuditTrail';
 import DataCapturer  from './DataCapturer';
 
 import ManageUsers   from './Administrator/ManageUsers';
-import ManagePIPs    from './Administrator/ManagePips';
 import ManageRoles   from './Administrator/ManageRoles';
 
 import PrivateRoute  from './PrivateRoute'; // ✅ import this
@@ -63,14 +62,6 @@ function App() {
                 element={
                   <PrivateRoute>
                     <ManageUsers />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/administrator/managepips"
-                element={
-                  <PrivateRoute>
-                    <ManagePIPs />
                   </PrivateRoute>
                 }
               />
