@@ -140,6 +140,46 @@ router.post('/useradd', async (req, res) => {
   }
 });
 
+// GET /api/users/rolesfetch — fetch all active roles
+router.get('/rolesfetch', async (req, res) => {
+  const authUser = req.user || {};
+  try {
+    const result = await pool.query(
+      `SELECT id, name, description, is_active
+         FROM roles
+        ORDER BY name`
+    );
+
+    if (authUser.id) {
+      await logAuditTrail({
+        req,
+        user_id: authUser.id,
+        action_type: 'Read',
+        module_name: 'Roles',
+        target: 'All Roles',
+        result_summary: `${result.rows.length} roles fetched`,
+        status: 'success',
+      });
+    }
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching roles:', err);
+    if (authUser.id) {
+      await logAuditTrail({
+        req,
+        user_id: authUser.id,
+        action_type: 'Read',
+        module_name: 'Roles',
+        target: 'All Roles',
+        result_summary: err.message,
+        status: 'error',
+      });
+    }
+    res.status(500).json({ error: 'Failed to fetch roles' });
+  }
+});
+
 // PUT update user and roles
 router.put('/userupdate/:id', async (req, res) => {
   const { id } = req.params;
@@ -382,5 +422,103 @@ router.post('/roleadd', async (req, res) => {
   }
 });
 
+// PATCH /api/users/roletoggle/:id — toggle active/inactive
+router.patch('/roletoggle/:id', async (req, res) => {
+  const { id } = req.params;
+  const authUser = req.user || {};
 
+  try {
+    const result = await pool.query(
+      `UPDATE roles
+         SET is_active = NOT is_active
+       WHERE id = $1
+       RETURNING id, name, is_active`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Role not found' });
+    }
+
+    const role = result.rows[0];
+
+    if (authUser.id) {
+      await logAuditTrail({
+        req,
+        user_id: authUser.id,
+        action_type: 'Update',
+        module_name: 'Roles',
+        target: role.name,
+        result_summary: `Toggled to ${role.is_active ? 'active' : 'inactive'}`,
+        status: 'success',
+      });
+    }
+
+    res.json({ message: `Role is now ${role.is_active ? 'active' : 'inactive'}` });
+  } catch (e) {
+    console.error('Error toggling role:', e);
+    res.status(500).json({ error: 'Failed to toggle role' });
+
+    if (authUser.id) {
+      await logAuditTrail({
+        req,
+        user_id: authUser.id,
+        action_type: 'Update',
+        module_name: 'Roles',
+        target: id,
+        result_summary: e.message,
+        status: 'error',
+      });
+    }
+  }
+});
+
+// POST /api/users/roleupdate — update name/description
+router.post('/roleupdate', async (req, res) => {
+  const { id, name, description } = req.body;
+  const authUser = req.user || {};
+
+  try {
+    const result = await pool.query(
+      `UPDATE roles
+         SET name = $1,
+             description = $2
+       WHERE id = $3`,
+      [name.trim(), description || null, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Role not found' });
+    }
+
+    if (authUser.id) {
+      await logAuditTrail({
+        req,
+        user_id: authUser.id,
+        action_type: 'Update',
+        module_name: 'Roles',
+        target: name,
+        result_summary: 'Role updated',
+        status: 'success',
+      });
+    }
+
+    res.json({ message: 'Role updated' });
+  } catch (e) {
+    console.error('Error updating role:', e);
+    res.status(500).json({ error: 'Failed to update role' });
+
+    if (authUser.id) {
+      await logAuditTrail({
+        req,
+        user_id: authUser.id,
+        action_type: 'Update',
+        module_name: 'Roles',
+        target: id,
+        result_summary: e.message,
+        status: 'error',
+      });
+    }
+  }
+});
 module.exports = router;

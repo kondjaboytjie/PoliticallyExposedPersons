@@ -1,4 +1,3 @@
-/*  src/Administrator/ManageUsers.js  */
 import React, { useEffect, useState } from 'react';
 import { FaEdit, FaPlus, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import { CSVLink } from 'react-csv';
@@ -8,38 +7,35 @@ import autoTable from 'jspdf-autotable';
 import '../Pages.css';
 
 function ManageUsers() {
-  /* ──────────────────────────── state ─────────────────────────── */
-  const [users, setUsers]           = useState([]);
-  const [roles, setRoles]           = useState([]);
+  const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState('first_name');
-  const [sortOrder, setSortOrder]   = useState('asc');
-  const [showForm, setShowForm]     = useState(false);
-  const [editMode, setEditMode]     = useState(false);
-  const [editId, setEditId]         = useState(null);
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [showForm, setShowForm] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
-    first_name : '',
-    last_name  : '',
-    email      : '',
-    password   : '',
-    roles      : []
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    roles: []
   });
-  const [message, setMessage]               = useState('');
+  const [message, setMessage] = useState('');
   const [showMessagePopup, setShowMessagePopup] = useState(false);
 
   const itemsPerPage = 5;
 
-  /* ─────────────────────────── lifecycle ──────────────────────── */
   useEffect(() => {
     fetchUsers();
     fetchRoles();
   }, []);
 
-  /* ─────────────────────────── fetch helpers ──────────────────── */
   const fetchUsers = async () => {
     try {
-      const res  = await fetch('http://localhost:5000/api/users/usersfetch', {
+      const res = await fetch('http://localhost:5000/api/users/usersfetch', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -51,7 +47,7 @@ function ManageUsers() {
 
   const fetchRoles = async () => {
     try {
-      const res  = await fetch('http://localhost:5000/api/users/rolesfetch');
+      const res = await fetch('http://localhost:5000/api/users/rolesfetch');
       const data = await res.json();
       setRoles(data);
     } catch (err) {
@@ -59,7 +55,6 @@ function ManageUsers() {
     }
   };
 
-  /* ─────────────────────────── sorting & paging ───────────────── */
   const handleSort = (col) => {
     const order = sortColumn === col && sortOrder === 'asc' ? 'desc' : 'asc';
     setSortColumn(col);
@@ -75,23 +70,21 @@ function ManageUsers() {
   const sorted = filtered.sort((a, b) => {
     const valA = (a[sortColumn] || '').toString().toLowerCase();
     const valB = (b[sortColumn] || '').toString().toLowerCase();
-    if (valA < valB) return sortOrder === 'asc' ? -1 :  1;
-    if (valA > valB) return sortOrder === 'asc' ?  1 : -1;
+    if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+    if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
     return 0;
   });
 
-  const totalPages   = Math.ceil(sorted.length / itemsPerPage);
-  const currentUsers = sorted.slice((currentPage - 1) * itemsPerPage,
-                                    currentPage          * itemsPerPage);
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  const currentUsers = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  /* ─────────────────────────── enable / disable ───────────────── */
   const toggleUserStatus = async (id, isActive) => {
     const action = isActive ? 'deactivate' : 'activate';
     if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
 
     try {
       const res = await fetch(`http://localhost:5000/api/users/toggle-status/${id}`, {
-        method : 'PATCH',
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const result = await res.json();
@@ -106,7 +99,6 @@ function ManageUsers() {
     }
   };
 
-  /* ─────────────────────────── role chip toggle ───────────────── */
   const toggleRole = (roleName) => {
     setFormData(prev => {
       const roles = prev.roles.includes(roleName)
@@ -116,7 +108,6 @@ function ManageUsers() {
     });
   };
 
-  /* ─────────────────────────── add / edit submit ──────────────── */
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
@@ -129,16 +120,16 @@ function ManageUsers() {
     }
 
     try {
-      const url    = editMode
+      const url = editMode
         ? `http://localhost:5000/api/users/userupdate/${editId}`
-        :  'http://localhost:5000/api/users/useradd';
+        : 'http://localhost:5000/api/users/useradd';
       const method = editMode ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization : `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(formData)
       });
@@ -146,8 +137,7 @@ function ManageUsers() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Failed to save user');
 
-      setMessage(editMode ? '✅ User updated successfully'
-                          : '✅ User added successfully');
+      setMessage(editMode ? '✅ User updated successfully' : '✅ User added successfully');
       setShowMessagePopup(true);
       resetForm();
       fetchUsers();
@@ -160,10 +150,10 @@ function ManageUsers() {
   const handleEdit = (u) => {
     setFormData({
       first_name: u.first_name,
-      last_name : u.last_name,
-      email     : u.email,
-      password  : '',
-      roles     : u.roles || []
+      last_name: u.last_name,
+      email: u.email,
+      password: '',
+      roles: u.roles || []
     });
     setEditMode(true);
     setEditId(u.id);
@@ -177,14 +167,13 @@ function ManageUsers() {
     setShowForm(false);
   };
 
-  /* ─────────────────────────── export helpers ─────────────────── */
   const flattenedForExport = users.map(u => ({
-    'First Name' : u.first_name,
-    'Last Name'  : u.last_name,
-    Email        : u.email,
-    Roles        : (u.roles || []).join(', '),
-    Status       : u.is_active ? 'Active' : 'Inactive',
-    'Created At' : new Date(u.created_at).toLocaleString()
+    'First Name': u.first_name,
+    'Last Name': u.last_name,
+    Email: u.email,
+    Roles: (u.roles || []).join(', '),
+    Status: u.is_active ? 'Active' : 'Inactive',
+    'Created At': new Date(u.created_at).toLocaleString()
   }));
 
   const exportExcel = () => {
@@ -203,10 +192,8 @@ function ManageUsers() {
     doc.save('users.pdf');
   };
 
-  /* ─────────────────────────── render ─────────────────────────── */
   return (
     <div className="page-container">
-      {/* ───────────── controls ───────────── */}
       <div className="table-controls">
         <input
           type="text"
@@ -216,34 +203,26 @@ function ManageUsers() {
         />
 
         <div className="button-group">
-          {/* Add / Edit */}
           <button
             className="export-button"
-            onClick={() => { setShowForm(true); setEditMode(false); setEditId(null); resetForm(); }}
+            onClick={() => {
+              setEditMode(false);
+              setEditId(null);
+              setShowForm(true);
+              setFormData({ first_name: '', last_name: '', email: '', password: '', roles: [] });
+            }}
           >
             <FaPlus style={{ marginRight: 5 }} /> Add User
           </button>
 
-          {/* ─── Export buttons ─── */}
-          <CSVLink
-            filename="users.csv"
-            data={flattenedForExport}
-            className="export-button"
-          >
+          <CSVLink filename="users.csv" data={flattenedForExport} className="export-button">
             Export CSV
           </CSVLink>
-
-          <button className="export-button" onClick={exportExcel}>
-            Export Excel
-          </button>
-
-          <button className="export-button" onClick={exportPDF}>
-            Export PDF
-          </button>
+          <button className="export-button" onClick={exportExcel}>Export Excel</button>
+          <button className="export-button" onClick={exportPDF}>Export PDF</button>
         </div>
       </div>
 
-      {/* ───────────── add / edit form ───────────── */}
       {showForm && (
         <form className="table-container" onSubmit={handleFormSubmit}>
           <h3>{editMode ? 'Edit User' : 'Add New User'}</h3>
@@ -282,7 +261,7 @@ function ManageUsers() {
           </div>
 
           <div className="form-group">
-            <label style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Assign Roles:</label>
+            <label>Assign Roles:</label>
             <div className="multi-select">
               {roles.map(r => (
                 <div
@@ -296,33 +275,22 @@ function ManageUsers() {
             </div>
           </div>
 
-          <button type="submit" className="export-button">
-            {editMode ? 'Update' : 'Submit'}
-          </button>
-          <button
-            type="button"
-            className="export-button"
-            style={{ marginLeft: '1rem', background: '#ccc' }}
-            onClick={resetForm}
-          >
+          <button type="submit" className="export-button">{editMode ? 'Update' : 'Submit'}</button>
+          <button type="button" className="export-button" style={{ marginLeft: '1rem', background: '#ccc' }} onClick={resetForm}>
             Cancel
           </button>
         </form>
       )}
 
-      {/* ───────────── message popup ───────────── */}
       {showMessagePopup && (
         <div className="message-popup">
           <div className="message-popup-content">
             <p>{message}</p>
-            <button className="close-popup-button" onClick={() => setShowMessagePopup(false)}>
-              Close
-            </button>
+            <button className="close-popup-button" onClick={() => setShowMessagePopup(false)}>Close</button>
           </div>
         </div>
       )}
 
-      {/* ───────────── table ───────────── */}
       <div className="table-container">
         <table className="pips-table">
           <thead>
@@ -346,9 +314,7 @@ function ManageUsers() {
                 <td>{u.roles?.join(', ') || '-'}</td>
                 <td>{u.is_active ? 'Active' : 'Inactive'}</td>
                 <td>
-                  <button title="Edit"    className="action-button" onClick={() => handleEdit(u)} >
-                    <FaEdit />
-                  </button>
+                  <button title="Edit" className="action-button" onClick={() => handleEdit(u)}><FaEdit /></button>
                   <button
                     title={u.is_active ? 'Disable' : 'Enable'}
                     className="action-button"
@@ -363,11 +329,8 @@ function ManageUsers() {
         </table>
       </div>
 
-      {/* ───────────── pagination ───────────── */}
       <div className="pagination">
-        <button onClick={() => setCurrentPage(c => c - 1)} disabled={currentPage === 1}>
-          ← Prev
-        </button>
+        <button onClick={() => setCurrentPage(c => c - 1)} disabled={currentPage === 1}>← Prev</button>
         {[...Array(totalPages)].map((_, i) => (
           <button
             key={i}
@@ -377,9 +340,7 @@ function ManageUsers() {
             {i + 1}
           </button>
         ))}
-        <button onClick={() => setCurrentPage(c => c + 1)} disabled={currentPage === totalPages}>
-          Next →
-        </button>
+        <button onClick={() => setCurrentPage(c => c + 1)} disabled={currentPage === totalPages}>Next →</button>
       </div>
     </div>
   );
