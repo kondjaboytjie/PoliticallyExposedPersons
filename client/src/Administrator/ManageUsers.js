@@ -263,15 +263,18 @@ function ManageUsers() {
           <div className="form-group">
             <label>Assign Roles:</label>
             <div className="multi-select">
-              {roles.map(r => (
-                <div
-                  key={r.id}
-                  className={`role-chip ${formData.roles.includes(r.name) ? 'selected' : ''}`}
-                  onClick={() => toggleRole(r.name)}
-                >
-                  {r.name}
-                </div>
-              ))}
+           {roles
+  .filter(r => r.is_active) // ✅ only active roles
+  .map(r => (
+    <div
+      key={r.id}
+      className={`role-chip ${formData.roles.includes(r.name) ? 'selected' : ''}`}
+      onClick={() => toggleRole(r.name)}
+    >
+      {r.name}
+    </div>
+))}
+
             </div>
           </div>
 
